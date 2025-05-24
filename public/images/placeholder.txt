@@ -1,0 +1,15 @@
+This directory will contain the following images:
+
+1. hero-image.jpg - Child reading a personalized storybook
+2. step1.jpg - Image showing the upload and describe step
+3. step2.jpg - Image showing the review and customize step
+4. step3.jpg - Image showing the order and receive step
+5. child-photo.jpg - Sample photo of a child
+6. cat-photo.jpg - Sample photo of a cat
+7. testimonial1.jpg - Photo of testimonial author 1
+8. testimonial2.jpg - Photo of testimonial author 2
+9. testimonial3.jpg - Photo of testimonial author 3
+10. testimonial4.jpg - Photo of testimonial author 4
+11. logo.svg - KustomTales logo
+
+Note: In a production environment, these would be actual image files. For this demo, this placeholder file indicates what images would be needed.

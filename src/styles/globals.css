@@ -1,0 +1,342 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import playful, readable fonts */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Comic+Neue:wght@300;400;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: 'Quicksand', 'Comic Neue', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  scroll-behavior: smooth;
+  background: linear-gradient(135deg, #FFF8E1 0%, #E8F5E8 50%, #E3F2FD 100%);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar with adventure theme */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFF8E1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #FFB74D, #FF8A65);
+  border-radius: 10px;
+  border: 2px solid #FFF8E1;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #FFA726, #FF7043);
+}
+
+/* Adventure-themed animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+.sparkle-animation {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.gentle-bounce {
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+/* Storybook page effect */
+.page-shadow {
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Magical button effects */
+.magical-button {
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transition: all 0.3s ease;
+}
+
+.magical-button:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.magical-button:hover:before {
+  left: 100%;
+}
+
+.magical-button:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Ensure buttons are always clickable */
+.clickable-button {
+  position: relative !important;
+  z-index: 999 !important;
+  pointer-events: auto !important;
+}
+
+/* Adventure-themed buttons with better colors and shadows */
+.adventure-button {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 50%, #ff3838 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 
+    0 4px 15px rgba(238, 90, 36, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.adventure-button:hover {
+  background: linear-gradient(135deg, #ff5252 0%, #e55100 50%, #ff1744 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    0 8px 25px rgba(238, 90, 36, 0.5),
+    0 4px 15px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+.adventure-button:active {
+  transform: translateY(0) !important;
+  box-shadow: 
+    0 2px 8px rgba(238, 90, 36, 0.3),
+    0 1px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.adventure-button:disabled {
+  background: linear-gradient(135deg, #bbb 0%, #999 50%, #888 100%) !important;
+  transform: translateY(0) !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  cursor: not-allowed !important;
+}
+
+/* Magic orange color for icons and accents */
+.text-magic-orange {
+  color: #ee5a24;
+}
+
+.bg-magic-orange {
+  background-color: #ee5a24;
+}
+
+.hover\:bg-magic-orange:hover {
+  background-color: #ee5a24;
+}
+
+/* Adventure secondary button */
+.adventure-button-secondary {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 50%, #6c5ce7 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 
+    0 4px 15px rgba(116, 185, 255, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.adventure-button-secondary:hover {
+  background: linear-gradient(135deg, #5a9cfc 0%, #0770c4 50%, #5b4bd1 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    0 8px 25px rgba(116, 185, 255, 0.5),
+    0 4px 15px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+.adventure-button-secondary:active {
+  transform: translateY(0) !important;
+  box-shadow: 
+    0 2px 8px rgba(116, 185, 255, 0.3),
+    0 1px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.adventure-button-secondary:disabled {
+  background: linear-gradient(135deg, #bbb 0%, #999 50%, #888 100%) !important;
+  transform: translateY(0) !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  cursor: not-allowed !important;
+}
+
+/* Magical shimmer effect for buttons */
+.adventure-button::before,
+.adventure-button-secondary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.6s ease;
+}
+
+.adventure-button:hover::before,
+.adventure-button-secondary:hover::before {
+  left: 100%;
+}
+
+/* Friendly form styling */
+.friendly-input {
+  font-size: 18px;
+  padding: 16px 20px;
+  border: 3px solid #E8F5E8;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+  font-family: 'Quicksand', sans-serif;
+}
+
+.friendly-input:focus {
+  border-color: #66BB6A;
+  box-shadow: 0 0 0 4px rgba(102, 187, 106, 0.1);
+  outline: none;
+  transform: scale(1.02);
+}
+
+/* Adventure card styling */
+.adventure-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.adventure-card:before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 3px;
+  background: linear-gradient(135deg, #FFB74D, #66BB6A, #42A5F5);
+  border-radius: inherit;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.adventure-card:hover:before {
+  opacity: 1;
+}
+
+.adventure-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress bar styling */
+.adventure-progress {
+  background: linear-gradient(90deg, #FFB74D 0%, #66BB6A 50%, #42A5F5 100%);
+  height: 8px;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.adventure-progress:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Large, friendly text for older users */
+.friendly-text {
+  font-size: 20px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.friendly-title {
+  font-size: 32px;
+  font-weight: 700;
+  font-family: 'Fredoka', 'Quicksand', sans-serif;
+}
+
+.friendly-subtitle {
+  font-size: 24px;
+  font-weight: 600;
+  font-family: 'Fredoka', 'Quicksand', sans-serif;
+}
+
+/* Accessibility improvements */
+.focus-visible {
+  outline: 3px solid #FFB74D;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .adventure-card {
+    border: 3px solid #333;
+  }
+  
+  .friendly-input {
+    border: 3px solid #333;
+  }
+}
