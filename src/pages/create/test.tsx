@@ -1,4 +1,4 @@
-import { useState, useRef, FormEvent } from 'react';
+import { useState, useRef, FormEvent, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import { createBook, getBookStatus, getBook, getPageImageUrl } from '../../utils/bookService';
 
@@ -161,7 +161,7 @@ export default function TestBookCreation() {
   };
   
   // Clean up interval on unmount
-  useState(() => {
+  useEffect(() => {
     return () => {
       if (statusInterval) {
         clearInterval(statusInterval);
@@ -397,7 +397,8 @@ export default function TestBookCreation() {
                     })}
                     className="bg-story-blue text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    Create Another Book
+                    <span className="hidden sm:inline">Create Another Book</span>
+                    <span className="sm:hidden">New Book</span>
                   </button>
                 </div>
               </div>

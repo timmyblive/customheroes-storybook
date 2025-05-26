@@ -1,0 +1,1063 @@
+import { useRouter } from 'next/router';
+import { useState, useEffect } from 'react';
+import { useProofManagement } from '../../../hooks/useProofManagement';
+import Layout from '../../../components/layout/Layout';
+import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faArrowLeft, 
+  faBox, 
+  faEye, 
+  faEdit, 
+  faShippingFast,
+  faSpinner,
+  faDownload,
+  faEnvelope,
+  faUser,
+  faMapMarkerAlt,
+  faCreditCard,
+  faBook,
+  faCheckCircle,
+  faExclamationTriangle,
+  faClock,
+  faUpload,
+  faFilePdf,
+  faHistory,
+  faCommentAlt,
+  faQuestion,
+  faRedo,
+  faSyncAlt,
+  faCopy,
+  faDatabase,
+  faClipboard
+} from '@fortawesome/free-solid-svg-icons';
+import { Order, OrderStatus } from '../../../types/order';
+
+export default function AdminOrderDetailsPage() {
+  const router = useRouter();
+  const { id } = router.query;
+  const [order, setOrder] = useState<Order | null>(null);
+  const [rawOrderData, setRawOrderData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [newStatus, setNewStatus] = useState<OrderStatus>('completed');
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'raw-data'>('overview'); // Test comment
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  
+  // Custom hook for proof management with persistence
+  const {
+    uploading,
+    uploadedProofUrl,
+    handleUploadProof,
+    sendProofToCustomer,
+    resendProof,
+    resetUploadState
+  } = useProofManagement(
+    { orderId: id as string, initialProof: order?.proof },
+    (updatedOrder) => setOrder(updatedOrder as Order),
+    order as Order
+  );
+  
+  const [shippingData, setShippingData] = useState({
+    carrier: '',
+    trackingNumber: '',
+    trackingUrl: ''
+  });
+
+  useEffect(() => {
+    if (id) {
+      loadOrder(id as string);
+    }
+  }, [id]);
+
+  const loadOrder = async (orderId: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Order not found');
+        }
+        throw new Error('Failed to load order');
+      }
+      
+      const orderData = await response.json();
+      setOrder(orderData);
+      setRawOrderData(orderData);
+    } catch (error) {
+      console.error('Error loading order:', error);
+      alert(error instanceof Error ? error.message : 'Failed to load order');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: OrderStatus) => {
+    const statusConfig: Record<OrderStatus, { color: string; text: string; icon: any }> = {
+      pending: { color: 'bg-gray-100 text-gray-800', text: 'Pending', icon: faClock },
+      completed: { color: 'bg-blue-100 text-blue-800', text: 'Payment Complete', icon: faCreditCard },
+      proof_generation: { color: 'bg-yellow-100 text-yellow-800', text: 'Generating Proof', icon: faClock },
+      proof_sent: { color: 'bg-purple-100 text-purple-800', text: 'Proof Sent', icon: faEnvelope },
+      proof_approved: { color: 'bg-green-100 text-green-800', text: 'Proof Approved', icon: faCheckCircle },
+      proof_revision: { color: 'bg-orange-100 text-orange-800', text: 'Revision Requested', icon: faExclamationTriangle },
+      printing: { color: 'bg-indigo-100 text-indigo-800', text: 'Printing', icon: faBook },
+      shipped: { color: 'bg-teal-100 text-teal-800', text: 'Shipped', icon: faShippingFast },
+      delivered: { color: 'bg-emerald-100 text-emerald-800', text: 'Delivered', icon: faCheckCircle },
+      cancelled: { color: 'bg-red-100 text-red-800', text: 'Cancelled', icon: faExclamationTriangle }
+    };
+
+    const config = statusConfig[status] || { color: 'bg-gray-100 text-gray-800', text: status || 'Unknown', icon: faExclamationTriangle };
+    return (
+      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${config.color}`}>
+        <FontAwesomeIcon icon={config.icon} className="mr-2" />
+        {config.text}
+      </span>
+    );
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!order) return;
+
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}/update-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        setOrder({ ...order, status: newStatus });
+        setShowStatusModal(false);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  };
+
+  const handleUpdateShipping = async () => {
+    if (!order) return;
+
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}/update-shipping`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(shippingData),
+      });
+
+      if (response.ok) {
+        // Update order with shipping info
+        setOrder({
+          ...order,
+          status: 'shipped',
+          shipping: {
+            carrier: shippingData.carrier,
+            trackingNumber: shippingData.trackingNumber,
+            trackingUrl: shippingData.trackingUrl,
+            shippedAt: new Date().toISOString()
+          }
+        });
+        setShowShippingModal(false);
+        setShippingData({ carrier: '', trackingNumber: '', trackingUrl: '' });
+      }
+    } catch (error) {
+      console.error('Error updating shipping:', error);
+    }
+  };
+
+  // Proof management functions are now provided by the useProofManagement hook
+
+  // Copy to clipboard functionality
+  const copyToClipboard = async (text: string, fieldName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Layout title="Admin - Order Details - CustomHeroes">
+        <div className="bg-fog min-h-screen pt-20">
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center">
+              <FontAwesomeIcon icon={faSpinner} className="text-4xl text-story-blue animate-spin mb-4" />
+              <p className="text-charcoal">Loading order details...</p>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!order) {
+    return (
+      <Layout title="Admin - Order Not Found - CustomHeroes">
+        <div className="bg-fog min-h-screen pt-20">
+          <div className="container mx-auto px-4 py-8">
+            <Card className="text-center py-12">
+              <FontAwesomeIcon icon={faBox} className="text-4xl text-gray-400 mb-4" />
+              <h3 className="font-montserrat font-bold text-xl text-inkwell-black mb-2">
+                Order Not Found
+              </h3>
+              <p className="text-charcoal mb-4">
+                The order you're looking for doesn't exist or has been removed.
+              </p>
+              <Button href="/admin/orders" variant="secondary">
+                <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+                Back to Orders
+              </Button>
+            </Card>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout title={`Admin - Order ${order.id} - CustomHeroes`}>
+      <div className="bg-gradient-to-br from-fog to-lavender min-h-screen pt-20">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          
+          {/* Enhanced Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <Button
+                href="/admin/orders"
+                variant="secondary"
+                size="sm"
+                className="shadow-sm hover:shadow-md transition-shadow"
+              >
+                <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+                Back to Orders
+              </Button>
+              
+              <div className="flex items-center gap-3">
+                {getStatusBadge(order.status)}
+                <Button
+                  onClick={() => setShowStatusModal(true)}
+                  variant="secondary"
+                  size="sm"
+                  className="shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <FontAwesomeIcon icon={faEdit} className="mr-2" />
+                  Update Status
+                </Button>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-2xl shadow-level-3 p-8 border border-white/20">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div className="flex-1">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-adventure-green to-story-blue rounded-xl flex items-center justify-center shadow-md">
+                      <FontAwesomeIcon icon={faBox} className="text-xl text-white" />
+                    </div>
+                    <div>
+                      <h1 className="font-montserrat font-bold text-3xl text-inkwell-black">
+                        Order #{order.id.slice(-8).toUpperCase()}
+                      </h1>
+                      <p className="text-charcoal/70 font-medium">
+                        Created {new Date(order.createdAt).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-sm text-charcoal/70 font-medium">Order Total</p>
+                    <p className="text-2xl font-bold text-inkwell-black">
+                      ${(order.total / 100).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex gap-4 mb-8">
+            <button
+              className={`py-2 px-4 rounded-lg ${activeTab === 'overview' ? 'bg-story-blue text-white' : 'bg-white text-story-blue'}`}
+              onClick={() => setActiveTab('overview')}
+            >
+              Overview
+            </button>
+            <button
+              className={`py-2 px-4 rounded-lg ${activeTab === 'raw-data' ? 'bg-story-blue text-white' : 'bg-white text-story-blue'}`}
+              onClick={() => setActiveTab('raw-data')}
+            >
+              Raw Data
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8">
+            
+            {/* Tab Content */}
+            {activeTab === 'overview' && (
+            <div className="space-y-8">
+              
+              {/* Book Details */}
+              <Card className="shadow-level-3 border border-white/20 bg-white/95 backdrop-blur-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-adventure-green to-adventure-green/80 rounded-xl flex items-center justify-center shadow-sm">
+                    <FontAwesomeIcon icon={faBook} className="text-lg text-white" />
+                  </div>
+                  <h3 className="font-montserrat font-bold text-xl text-inkwell-black">
+                    Book Details
+                  </h3>
+                </div>
+                
+                <div className="flex flex-col lg:flex-row gap-8">
+                  <div className="lg:w-1/3">
+                    <div className="relative group">
+                      <img
+                        src={order.book.coverImage}
+                        alt={order.book.title}
+                        className="w-full rounded-xl shadow-lg transition-transform group-hover:scale-105"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI0MCIgdmlld0JveD0iMCAwIDIwMCAyNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwIDQwKSI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTYwIiByeD0iOCIgZmlsbD0iIzJFOEI1NyIvPgo8cmVjdCB4PSI4IiB5PSI4IiB3aWR0aD0iODQiIGhlaWdodD0iMTQ0IiByeD0iNCIgZmlsbD0iI0Y5RkFGQiIvPgo8L2c+Cjx0ZXh0IHg9IjEwMCIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNkI3MjgwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiPkJvb2sgUHJldmlldyBOb3QgQXZhaWxhYmxlPC90ZXh0Pgo8L3N2Zz4K';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                  
+                  <div className="lg:w-2/3">
+                    <h4 className="font-montserrat font-bold text-2xl text-inkwell-black mb-4">
+                      {order.book.title}
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="bg-gradient-to-br from-adventure-green/10 to-adventure-green/5 rounded-xl p-4 border border-adventure-green/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FontAwesomeIcon icon={faUser} className="text-adventure-green" />
+                          <span className="font-semibold text-charcoal text-sm">Character</span>
+                        </div>
+                        <p className="text-inkwell-black font-medium">{order.characterName}</p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-story-blue/10 to-story-blue/5 rounded-xl p-4 border border-story-blue/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FontAwesomeIcon icon={faBox} className="text-story-blue" />
+                          <span className="font-semibold text-charcoal text-sm">Product Type</span>
+                        </div>
+                        <p className="text-inkwell-black font-medium capitalize">{order.productType}</p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-tale-purple/10 to-tale-purple/5 rounded-xl p-4 border border-tale-purple/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FontAwesomeIcon icon={faBook} className="text-tale-purple" />
+                          <span className="font-semibold text-charcoal text-sm">Pages</span>
+                        </div>
+                        <p className="text-inkwell-black font-medium">{order.book.pages} pages</p>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-magic-orange/10 to-magic-orange/5 rounded-xl p-4 border border-magic-orange/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FontAwesomeIcon icon={faCreditCard} className="text-magic-orange" />
+                          <span className="font-semibold text-charcoal text-sm">Price</span>
+                        </div>
+                        <p className="text-inkwell-black font-medium text-lg">${(order.total / 100).toFixed(2)}</p>
+                      </div>
+                    </div>
+                    
+                    {order.book.pdfUrl && (
+                      <div className="flex gap-3">
+                        <Button
+                          href={order.book.pdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="secondary"
+                          size="sm"
+                          className="shadow-sm hover:shadow-md transition-all"
+                        >
+                          <FontAwesomeIcon icon={faDownload} className="mr-2" />
+                          Download PDF
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+
+              {/* Proof Management */}
+              <Card className="shadow-level-3 border border-white/20 bg-white/95 backdrop-blur-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-story-blue to-story-blue/80 rounded-xl flex items-center justify-center shadow-sm">
+                    <FontAwesomeIcon icon={faFilePdf} className="text-lg text-white" />
+                  </div>
+                  <h3 className="font-montserrat font-bold text-xl text-inkwell-black">
+                    Proof Management
+                  </h3>
+                </div>
+
+                {/* Current Proof Status */}
+                {order.proof ? (
+                  <div className="mb-6">
+                    <h4 className="font-montserrat font-semibold text-lg text-inkwell-black mb-4 flex items-center">
+                      <FontAwesomeIcon icon={faEye} className="mr-2 text-story-blue" />
+                      Current Proof
+                    </h4>
+                    
+                    <div className="bg-gradient-to-br from-lavender/50 to-fog/50 rounded-xl p-6 border border-lavender/30">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <span className="text-sm font-semibold text-charcoal">Status:</span>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium inline-flex items-center ${
+                            order.proof.status === 'uploaded' ? 'bg-blue-100 text-blue-800' :
+                            order.proof.status === 'sent' ? 'bg-green-100 text-green-800' :
+                            order.proof.status === 'approved' ? 'bg-emerald-100 text-emerald-800' :
+                            order.proof.status === 'revision_requested' ? 'bg-orange-100 text-orange-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            <FontAwesomeIcon icon={
+                              order.proof.status === 'uploaded' ? faUpload :
+                              order.proof.status === 'sent' ? faEnvelope :
+                              order.proof.status === 'approved' ? faCheckCircle :
+                              order.proof.status === 'revision_requested' ? faEdit :
+                              faQuestion
+                            } className="mr-2" />
+                            {order.proof.status}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className="font-semibold text-charcoal block mb-1">Revisions:</span>
+                          <div className="flex items-center">
+                            <span className="bg-lavender/20 px-3 py-1 rounded-lg text-sm font-medium inline-flex items-center">
+                              <FontAwesomeIcon icon={faHistory} className="mr-2 text-tale-purple" />
+                              {order.proof.revisionCount ?? 0} revision{((order.proof.revisionCount ?? 0) !== 1) ? 's' : ''}
+                            </span>
+                            {(order.proof.revisionCount ?? 0) > 0 && (
+                              <span className="ml-2 text-xs text-charcoal/70">
+                                (Last updated: {new Date().toLocaleDateString()})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {order.proof.customerNotes && (
+                        <div className="mb-4 bg-tale-purple/10 p-3 rounded-lg border border-tale-purple/20">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FontAwesomeIcon icon={faCommentAlt} className="text-tale-purple" />
+                            <span className="font-semibold text-charcoal">Customer Feedback:</span>
+                          </div>
+                          <p className="text-charcoal/90 italic">"{order.proof.customerNotes}"</p>
+                        </div>
+                      )}
+                      
+                      {/* Proof Send History */}
+                      {order.proof.sendHistory && order.proof.sendHistory.length > 0 && (
+                        <div className="mt-4 bg-fog/30 p-3 rounded-lg border border-fog/50">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <FontAwesomeIcon icon={faHistory} className="text-adventure-green" />
+                              <span className="font-semibold text-charcoal">Send History:</span>
+                            </div>
+                            <span className="text-xs text-charcoal/60">{order.proof.sendHistory.length} {order.proof.sendHistory.length === 1 ? 'send' : 'sends'}</span>
+                          </div>
+                          
+                          <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                            {order.proof.sendHistory.map((record, index) => (
+                              <div key={record.id} className="flex items-center justify-between py-2 border-b border-fog/50 last:border-0">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-charcoal">
+                                      {record.isRevision ? 'Revision' : 'Initial Proof'}
+                                    </span>
+                                    {record.emailStatus === 'sent' && (
+                                      <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Sent</span>
+                                    )}
+                                    {record.emailStatus === 'failed' && (
+                                      <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs rounded-full">Failed</span>
+                                    )}
+                                    {record.emailStatus === 'delivered' && (
+                                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">Delivered</span>
+                                    )}
+                                    {record.emailStatus === 'opened' && (
+                                      <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">Opened</span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-charcoal/70 mt-1">
+                                    Sent {new Date(record.sentAt).toLocaleString()}
+                                  </div>
+                                </div>
+                                <Button
+                                  onClick={() => resendProof(record.proofUrl)}
+                                  variant="secondary"
+                                  size="sm"
+                                  className="shadow-sm hover:shadow-md transition-all text-xs py-1 px-2"
+                                >
+                                  <FontAwesomeIcon icon={faRedo} className="mr-1" />
+                                  Resend
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {order.proof.url && (
+                        <div className="flex items-center gap-3">
+                          <Button
+                            href={order.proof.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="secondary"
+                            size="sm"
+                            className="shadow-sm hover:shadow-md transition-all"
+                          >
+                            <FontAwesomeIcon icon={faFilePdf} className="mr-2" />
+                            View Current Proof
+                          </Button>
+                          
+                          {order.proof.status === 'uploaded' && (
+                            <Button
+                              onClick={() => sendProofToCustomer(order.proof!.url!)}
+                              size="sm"
+                              className="shadow-sm hover:shadow-md transition-all"
+                            >
+                              <FontAwesomeIcon icon={faEnvelope} className="mr-2" />
+                              Send to Customer
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-6 text-center py-6 bg-gradient-to-br from-fog/30 to-lavender/20 rounded-xl border border-fog/30">
+                    <div className="w-12 h-12 bg-gradient-to-br from-charcoal/20 to-charcoal/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <FontAwesomeIcon icon={faEye} className="text-xl text-charcoal/50" />
+                    </div>
+                    <h4 className="font-montserrat font-semibold text-lg text-inkwell-black mb-2">
+                      No Proof Generated Yet
+                    </h4>
+                    <p className="text-charcoal/70">
+                      Upload a proof PDF to get started with the approval process
+                    </p>
+                  </div>
+                )}
+
+                {/* Upload New Proof */}
+                <div>
+                  <h4 className="font-montserrat font-semibold text-lg text-inkwell-black mb-4 flex items-center">
+                    <FontAwesomeIcon icon={faUpload} className="mr-2 text-adventure-green" />
+                    {order.proof ? (
+                      <>
+                        Upload Revision 
+                        {(order.proof.revisionCount ?? 0) > 0 && (
+                          <span className="ml-2 text-sm font-normal text-charcoal/70">
+                            (Revision #{(order.proof.revisionCount ?? 0) + 1})
+                          </span>
+                        )}
+                      </>
+                    ) : 'Upload Proof'}
+                  </h4>
+                  
+                  <form id="proof-upload-form">
+                    <div className="border-2 border-dashed border-story-blue/30 rounded-xl p-8 text-center bg-gradient-to-br from-story-blue/5 to-story-blue/10 hover:border-story-blue/50 transition-colors">
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleUploadProof}
+                        className="hidden"
+                        id="proof-upload"
+                        disabled={uploading}
+                      />
+                      <label 
+                        htmlFor="proof-upload" 
+                        className={`cursor-pointer ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <div className="w-16 h-16 bg-gradient-to-br from-story-blue to-story-blue/80 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                          <FontAwesomeIcon 
+                            icon={uploading ? faSpinner : faUpload} 
+                            className={`text-2xl text-white ${uploading ? 'animate-spin' : ''}`} 
+                          />
+                        </div>
+                        <h5 className="font-montserrat font-semibold text-lg text-inkwell-black mb-2">
+                          {uploading ? 'Uploading...' : (
+                            order.proof ? 'Upload Revised Proof' : 'Choose PDF File'
+                          )}
+                        </h5>
+                        <p className="text-charcoal/70 mb-4">
+                          {uploading ? 'Please wait while we upload your proof' : (
+                            order.proof ? 
+                            'Upload a new version to replace the current proof' : 
+                            'Click to browse or drag and drop your proof PDF here'
+                          )}
+                        </p>
+                        <div className="text-sm text-charcoal/60">
+                          Maximum file size: 10MB • PDF format only
+                        </div>
+                      </label>
+                    </div>
+                  </form>
+                  
+                  {uploadedProofUrl && (
+                    <div className="mt-4 p-4 bg-gradient-to-r from-adventure-green/10 to-adventure-green/5 rounded-xl border border-adventure-green/20">
+                      <div className="flex items-center gap-3">
+                        <FontAwesomeIcon icon={faCheckCircle} className="text-adventure-green text-xl" />
+                        <div className="flex-1">
+                          <p className="font-semibold text-inkwell-black">
+                            {order.proof && (order.proof.revisionCount ?? 0) > 0 
+                              ? `Revision #${(order.proof.revisionCount ?? 0)} uploaded successfully!` 
+                              : 'Proof uploaded successfully!'}
+                          </p>
+                          <p className="text-sm text-charcoal/70">
+                            {order.proof?.status === 'revision_requested' 
+                              ? 'Ready to send revised proof to customer' 
+                              : 'Ready to send to customer'}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => sendProofToCustomer(uploadedProofUrl)}
+                          size="sm"
+                          className="shadow-sm hover:shadow-md transition-all"
+                        >
+                          <FontAwesomeIcon icon={faEnvelope} className="mr-2" />
+                          Send to Customer
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Enhanced Shipping Information */}
+              <Card className="shadow-level-3 border border-white/20 bg-white/95 backdrop-blur-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-adventure-green to-adventure-green/80 rounded-xl flex items-center justify-center shadow-sm">
+                    <FontAwesomeIcon icon={faShippingFast} className="text-lg text-white" />
+                  </div>
+                  <h3 className="font-montserrat font-bold text-xl text-inkwell-black">
+                    Shipping Information
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Shipping Address */}
+                  <div className="bg-gradient-to-br from-lavender/50 to-fog/50 rounded-xl p-6 border border-lavender/30">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FontAwesomeIcon icon={faMapMarkerAlt} className="text-story-blue text-lg" />
+                      <h4 className="font-montserrat font-semibold text-lg text-inkwell-black">
+                        Delivery Address
+                      </h4>
+                    </div>
+                    <div className="space-y-2 text-charcoal">
+                      <p className="font-medium text-inkwell-black">{order.shippingAddress.name}</p>
+                      <p>{order.shippingAddress.line1}</p>
+                      {order.shippingAddress.line2 && <p>{order.shippingAddress.line2}</p>}
+                      <p>
+                        {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
+                      </p>
+                      <p className="font-medium">{order.shippingAddress.country}</p>
+                    </div>
+                  </div>
+
+                  {/* Tracking Information */}
+                  <div className="bg-gradient-to-br from-fog/50 to-lavender/30 rounded-xl p-6 border border-fog/40">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FontAwesomeIcon icon={faBox} className="text-magic-orange text-lg" />
+                      <h4 className="font-montserrat font-semibold text-lg text-inkwell-black">
+                        Tracking Details
+                      </h4>
+                    </div>
+                    
+                    {order.shipping ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-charcoal">Carrier:</span>
+                          <span className="text-inkwell-black font-medium">{order.shipping.carrier}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-charcoal">Tracking #:</span>
+                          <span className="text-inkwell-black font-mono text-sm bg-white/70 px-2 py-1 rounded">
+                            {order.shipping.trackingNumber}
+                          </span>
+                        </div>
+                        {order.shipping.trackingUrl && (
+                          <Button
+                            href={order.shipping.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            size="sm"
+                            variant="secondary"
+                          >
+                            <FontAwesomeIcon icon={faBox} className="mr-2" />
+                            Track Package
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-charcoal/20 to-charcoal/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                          <FontAwesomeIcon icon={faBox} className="text-xl text-charcoal/50" />
+                        </div>
+                        <p className="text-charcoal/70 mb-3 text-sm">No tracking information yet</p>
+                        <Button
+                          onClick={() => setShowShippingModal(true)}
+                          size="sm"
+                          className="shadow-sm hover:shadow-md transition-all"
+                        >
+                          <FontAwesomeIcon icon={faEdit} className="mr-2" />
+                          Add Tracking Info
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="mt-6 pt-6 border-t border-lavender/30">
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      onClick={() => setShowShippingModal(true)}
+                      variant="secondary"
+                      size="sm"
+                      className="shadow-sm hover:shadow-md transition-all"
+                    >
+                      <FontAwesomeIcon icon={faEdit} className="mr-2" />
+                      Update Tracking
+                    </Button>
+                    
+                    <Button
+                      onClick={() => window.print()}
+                      variant="secondary"
+                      size="sm"
+                      className="shadow-sm hover:shadow-md transition-all"
+                    >
+                      <FontAwesomeIcon icon={faDownload} className="mr-2" />
+                      Print Shipping Label
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Customer Information */}
+              <Card className="shadow-level-3 border border-white/20 bg-white/95 backdrop-blur-sm">
+                <h3 className="font-montserrat font-bold text-lg text-inkwell-black mb-4 flex items-center">
+                  <FontAwesomeIcon icon={faUser} className="mr-3 text-story-blue" />
+                  Customer
+                </h3>
+                
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="font-semibold text-charcoal block">Name:</span>
+                    <span className="text-inkwell-black">{order.customerName}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-charcoal block">Email:</span>
+                    <span className="text-inkwell-black">{order.customerEmail}</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Payment Information */}
+              <Card className="shadow-level-3 border border-white/20 bg-white/95 backdrop-blur-sm">
+                <h3 className="font-montserrat font-bold text-lg text-inkwell-black mb-4 flex items-center">
+                  <FontAwesomeIcon icon={faCreditCard} className="mr-3 text-story-blue" />
+                  Payment
+                </h3>
+                
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="font-semibold text-charcoal block">Amount:</span>
+                    <span className="text-inkwell-black font-medium">${(order.total / 100).toFixed(2)}</span>
+                  </div>
+                  {order.payment && (
+                    <>
+                      <div>
+                        <span className="font-semibold text-charcoal block">Status:</span>
+                        <span className="text-green-600 capitalize">{order.payment.status}</span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-charcoal block">Stripe Session:</span>
+                        <span className="text-inkwell-black text-xs font-mono">
+                          {order.payment.stripeSessionId}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </Card>
+
+              {/* Quick Actions */}
+              <Card className="shadow-level-3 border border-white/20 bg-white/95 backdrop-blur-sm">
+                <h3 className="font-montserrat font-bold text-lg text-inkwell-black mb-4">
+                  Quick Actions
+                </h3>
+                
+                <div className="space-y-3">
+                  {(order.status === 'proof_approved' || order.status === 'printing') && !order.shipping && (
+                    <Button
+                      onClick={() => setShowShippingModal(true)}
+                      className="w-full"
+                      size="sm"
+                    >
+                      <FontAwesomeIcon icon={faShippingFast} className="mr-2" />
+                      Mark as Shipped
+                    </Button>
+                  )}
+                  
+                  <Button
+                    onClick={() => setShowStatusModal(true)}
+                    variant="secondary"
+                    className="w-full"
+                    size="sm"
+                  >
+                    <FontAwesomeIcon icon={faEdit} className="mr-2" />
+                    Update Status
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Customer & Payment Information */}
+              <Card className="shadow-level-3 border border-white/20 bg-white/95 backdrop-blur-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-tale-purple to-tale-purple/80 rounded-xl flex items-center justify-center shadow-sm">
+                    <FontAwesomeIcon icon={faUser} className="text-lg text-white" />
+                  </div>
+                  <h3 className="font-montserrat font-bold text-xl text-inkwell-black">
+                    Customer & Payment Information
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Customer Details */}
+                  <div className="bg-gradient-to-br from-lavender/50 to-fog/50 rounded-xl p-6 border border-lavender/30">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FontAwesomeIcon icon={faUser} className="text-tale-purple text-lg" />
+                      <h4 className="font-montserrat font-semibold text-lg text-inkwell-black">
+                        Contact Details
+                      </h4>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm font-semibold text-charcoal">Name:</span>
+                        <p className="text-inkwell-black font-medium">{order.customerName}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-charcoal">Email:</span>
+                        <p className="text-inkwell-black font-medium">{order.customerEmail}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  <div className="bg-gradient-to-br from-fog/50 to-lavender/30 rounded-xl p-6 border border-fog/40">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FontAwesomeIcon icon={faCreditCard} className="text-story-blue text-lg" />
+                      <h4 className="font-montserrat font-semibold text-lg text-inkwell-black">
+                        Payment Details
+                      </h4>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm font-semibold text-charcoal">Amount:</span>
+                        <p className="text-inkwell-black font-medium">${(order.total / 100).toFixed(2)}</p>
+                      </div>
+                      {order.payment && (
+                        <div>
+                          <span className="text-sm font-semibold text-charcoal">Status:</span>
+                          <p className="text-adventure-green font-medium capitalize">{order.payment.status}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Raw Data Tab */}
+        {activeTab === 'raw-data' && (
+          <div className="space-y-8">
+            <Card className="shadow-level-3 border border-white/20 bg-white/95 backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-adventure-green to-adventure-green/80 rounded-xl flex items-center justify-center shadow-sm">
+                  <FontAwesomeIcon icon={faDatabase} className="text-lg text-white" />
+                </div>
+                <h3 className="font-montserrat font-bold text-xl text-inkwell-black">
+                  Raw Order Data
+                </h3>
+              </div>
+              <pre className="text-sm text-charcoal/70 p-4 bg-fog/20 rounded-lg border border-fog/30">
+                {JSON.stringify(rawOrderData, null, 2)}
+              </pre>
+              <div className="flex gap-3 p-4">
+                <Button
+                  onClick={() => copyToClipboard(JSON.stringify(rawOrderData, null, 2), 'rawOrderData')}
+                  variant="secondary"
+                  size="sm"
+                  className="shadow-sm hover:shadow-md transition-all"
+                >
+                  <FontAwesomeIcon icon={faCopy} className="mr-2" />
+                  Copy to Clipboard
+                </Button>
+                <a
+                  href={`data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(rawOrderData, null, 2))}`}
+                  download="order-data.json"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-story-blue bg-white border border-story-blue rounded-lg hover:bg-story-blue hover:text-white transition-colors shadow-sm hover:shadow-md"
+                >
+                  <FontAwesomeIcon icon={faDownload} className="mr-2" />
+                  Download as JSON
+                </a>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+    </Layout>
+
+    {/* Status Update Modal */}
+    {showStatusModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <Card className="w-full max-w-md">
+          <h3 className="font-montserrat font-bold text-xl text-inkwell-black mb-4">
+            Update Order Status
+          </h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-inkwell-black mb-2">
+                New Status
+              </label>
+              <select
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value as OrderStatus)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-story-blue focus:border-story-blue"
+              >
+                <option value="pending">Pending</option>
+                <option value="completed">Payment Complete</option>
+                <option value="proof_generation">Generating Proof</option>
+                <option value="proof_sent">Proof Sent</option>
+                <option value="proof_approved">Proof Approved</option>
+                <option value="proof_revision">Revision Requested</option>
+                <option value="printing">Printing</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <Button
+              onClick={handleStatusUpdate}
+              className="flex-1"
+            >
+              Update Status
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowStatusModal(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </Card>
+      </div>
+    )}
+
+    {/* Shipping Modal */}
+    {showShippingModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <Card className="w-full max-w-md">
+          <h3 className="font-montserrat font-bold text-xl text-inkwell-black mb-4">
+            Mark Order as Shipped
+          </h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-inkwell-black mb-2">
+                Carrier
+              </label>
+              <select
+                value={shippingData.carrier}
+                onChange={(e) => setShippingData({...shippingData, carrier: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-story-blue focus:border-story-blue"
+                required
+              >
+                <option value="">Select Carrier</option>
+                <option value="UPS">UPS</option>
+                <option value="FedEx">FedEx</option>
+                <option value="USPS">USPS</option>
+                <option value="DHL">DHL</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-inkwell-black mb-2">
+                Tracking Number
+              </label>
+              <input
+                type="text"
+                value={shippingData.trackingNumber}
+                onChange={(e) => setShippingData({...shippingData, trackingNumber: e.target.value})}
+                placeholder="Enter tracking number"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-story-blue focus:border-story-blue"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-inkwell-black mb-2">
+                Tracking URL (Optional)
+              </label>
+              <input
+                type="url"
+                value={shippingData.trackingUrl}
+                onChange={(e) => setShippingData({...shippingData, trackingUrl: e.target.value})}
+                placeholder="Custom tracking URL"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-story-blue focus:border-story-blue"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <Button
+              onClick={handleUpdateShipping}
+              disabled={!shippingData.carrier || !shippingData.trackingNumber}
+              className="flex-1"
+            >
+              <FontAwesomeIcon icon={faShippingFast} className="mr-2" />
+              Ship & Notify Customer
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowShippingModal(false);
+                setShippingData({ carrier: '', trackingNumber: '', trackingUrl: '' });
+              }}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </Card>
+      </div>
+    )}
+  );
+}
