@@ -268,7 +268,7 @@ export default function ReviewOrder() {
                             defaultChecked
                           />
                           <label htmlFor="standard-shipping" className="ml-2 block text-sm">
-                            Standard Shipping (5-7 business days) - $4.99
+                            Standard Shipping (12-15 business days after proof approval) - $4.99
                           </label>
                         </div>
                         <div className="flex items-center mt-2">
@@ -279,7 +279,18 @@ export default function ReviewOrder() {
                             className="h-4 w-4 text-story-blue border-gray-300"
                           />
                           <label htmlFor="express-shipping" className="ml-2 block text-sm">
-                            Express Shipping (2-3 business days) - $9.99
+                            Express Shipping (8-11 business days after proof approval) - $15.00
+                          </label>
+                        </div>
+                        <div className="flex items-center mt-2">
+                          <input
+                            id="priority-shipping"
+                            type="radio"
+                            name="shipping-method"
+                            className="h-4 w-4 text-story-blue border-gray-300"
+                          />
+                          <label htmlFor="priority-shipping" className="ml-2 block text-sm">
+                            Priority Shipping (5-8 business days after proof approval) - $30.00
                           </label>
                         </div>
                       </div>

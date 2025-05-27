@@ -50,7 +50,7 @@ export default function WaitingConfirmation() {
                   <div className="text-left">
                     <h3 className="font-semibold text-inkwell-black mb-1">What Happens Next?</h3>
                     <p className="text-charcoal">
-                      Our creative team will review your information and create a personalized preview of your book within <strong>3-5 business days</strong>.
+                      Our creative team will review your information and create a personalized preview of your book within <strong>3-5 business days</strong>. After you approve the proof, production and shipping will take <strong>12-15 business days</strong> for standard shipping.
                     </p>
                   </div>
                 </div>

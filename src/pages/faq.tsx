@@ -16,7 +16,7 @@ export default function FAQPage() {
     },
     {
       question: "How long does it take to receive my book?",
-      answer: "The production time varies depending on the package you select. Standard orders typically take 3-5 business days to produce, plus shipping time (7-10 days for standard shipping, 5-7 days for expedited, and 3-5 days for priority). You can check the status of your order at any time in your account dashboard."
+      answer: "After placing your order, we'll generate your book and send you a proof within 3-5 business days. Once you approve the proof, standard shipping takes 12-15 business days. Expedited options are available: 8-11 business days for an additional $15, or 5-8 business days for an additional $30. You can check the status of your order at any time in your account dashboard."
     },
     {
       question: "What age range are the books suitable for?",

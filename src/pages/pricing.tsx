@@ -15,7 +15,7 @@ export default function PricingPage() {
         "Beautiful custom illustrations",
         "Up to 5 character photos",
         "Personal message on first page",
-        "Standard shipping (7-10 days)"
+        "Standard shipping (12-15 business days after proof approval)"
       ],
       popular: false,
       buttonText: "Choose Basic Magic"
@@ -31,7 +31,7 @@ export default function PricingPage() {
         "Up to 10 character photos",
         "Personal message on first page",
         "Digital eBook included",
-        "Expedited shipping (5-7 days)"
+        "Expedited shipping (8-11 business days after proof approval, +$15)"
       ],
       popular: true,
       buttonText: "Choose Premium Adventure"
@@ -39,7 +39,7 @@ export default function PricingPage() {
     {
       name: "Deluxe Kingdom",
       price: 89.99,
-      description: "Everything above + activity pack and coloring pages",
+      description: "Everything above + coloring pages and priority shipping",
       features: [
         "17-page personalized storybook",
         "Deluxe hardcover with special binding",
@@ -47,9 +47,8 @@ export default function PricingPage() {
         "Unlimited character photos",
         "Personal message on first page",
         "Digital eBook included",
-        "Activity pack with games & puzzles",
         "Coloring pages featuring your characters",
-        "Priority shipping (3-5 days)"
+        "Priority shipping (5-8 business days after proof approval, +$30)"
       ],
       popular: false,
       buttonText: "Choose Deluxe Kingdom"
@@ -73,9 +72,14 @@ export default function PricingPage() {
       description: "Additional copies of the same book at a discounted price."
     },
     {
-      name: "Rush Production",
-      price: 14.99,
-      description: "Expedited production time, completed within 48 hours."
+      name: "Expedited Shipping",
+      price: 15.00,
+      description: "Faster shipping: 8-11 business days after proof approval (instead of 12-15)."
+    },
+    {
+      name: "Priority Shipping",
+      price: 30.00,
+      description: "Fastest shipping: 5-8 business days after proof approval (instead of 12-15)."
     }
   ];
 
