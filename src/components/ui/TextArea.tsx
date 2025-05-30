@@ -3,6 +3,7 @@ import React from 'react';
 interface TextAreaProps {
   label?: string;
   id: string;
+  name?: string;
   className?: string;
   error?: string;
   placeholder?: string;
@@ -16,6 +17,7 @@ interface TextAreaProps {
 export default function TextArea({
   label,
   id,
+  name,
   className = '',
   error,
   placeholder,
@@ -36,6 +38,7 @@ export default function TextArea({
       )}
       <textarea
         id={id}
+        name={name}
         rows={rows}
         className={`w-full p-3 border rounded-input font-montserrat text-base
                    focus:outline-none focus:border-story-blue focus:ring-2 focus:ring-story-blue/20

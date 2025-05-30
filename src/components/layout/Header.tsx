@@ -15,7 +15,7 @@ export default function Header() {
             alt="CustomHeroes Logo" 
             width={180} 
             height={40}
-            className="h-10 w-auto"
+            style={{ height: '40px', width: 'auto' }}
             priority
           />
         </Link>
@@ -45,8 +45,7 @@ export default function Header() {
         </nav>
         
         <div className="hidden md:flex items-center space-x-4">
-          <Button href="/login" variant="secondary">Sign In</Button>
-          <Button href="/signup">Get Started</Button>
+          <Button href="/create">Get Started</Button>
         </div>
       </div>
       
@@ -68,8 +67,7 @@ export default function Header() {
             </Link>
             
             <div className="pt-4 border-t border-gray-200 flex flex-col space-y-3">
-              <Button href="/login" variant="secondary" className="w-full">Sign In</Button>
-              <Button href="/signup" className="w-full">Get Started</Button>
+              <Button href="/create" className="w-full">Get Started</Button>
             </div>
           </div>
         </div>

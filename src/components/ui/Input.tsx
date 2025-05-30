@@ -17,6 +17,7 @@ interface InputProps {
 export default function Input({
   label,
   id,
+  name,
   type = 'text',
   className = '',
   error,
@@ -37,6 +38,7 @@ export default function Input({
       )}
       <input
         id={id}
+        name={name}
         type={type}
         className={`w-full p-3 border rounded-input font-montserrat text-base
                    focus:outline-none focus:border-story-blue focus:ring-2 focus:ring-story-blue/20

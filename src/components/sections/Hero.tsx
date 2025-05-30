@@ -38,10 +38,12 @@ export default function Hero() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button href="/create" size="lg" className="adventure-button text-lg px-8 py-4">
                 <FontAwesomeIcon icon={faBookOpen} className="mr-2" />
-                Start Our Adventure
+                <span className="sm:hidden">Start Book</span>
+                <span className="hidden sm:inline">Start Our Adventure</span>
               </Button>
               <Button href="/examples" variant="secondary" size="lg" className="adventure-button-secondary text-lg px-8 py-4">
-                See Magic Examples
+                <span className="sm:hidden">See Examples</span>
+                <span className="hidden sm:inline">See Magic Examples</span>
               </Button>
             </div>
             

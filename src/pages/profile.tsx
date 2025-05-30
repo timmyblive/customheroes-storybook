@@ -380,7 +380,8 @@ export default function Profile() {
                           You haven't created any storybooks yet. Start your first magical story today!
                         </p>
                         <Button href="/create">
-                          Create Your First Book
+                          <span className="hidden sm:inline">Create Your First Book</span>
+                          <span className="sm:hidden">Create Book</span>
                         </Button>
                       </div>
                     )}

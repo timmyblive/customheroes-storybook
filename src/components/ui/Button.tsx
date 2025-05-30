@@ -11,6 +11,8 @@ interface ButtonProps {
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
   style?: React.CSSProperties;
+  target?: string;
+  rel?: string;
 }
 
 export default function Button({ 
@@ -23,6 +25,8 @@ export default function Button({
   type = 'button',
   disabled = false,
   style,
+  target,
+  rel,
   ...props 
 }: ButtonProps) {
   const baseStyles = 'font-montserrat font-bold inline-flex items-center justify-center rounded-button transition-all duration-300';
@@ -45,7 +49,7 @@ export default function Button({
   
   if (href && !disabled) {
     return (
-      <Link href={href} className={buttonStyles} style={style} {...props}>
+      <Link href={href} target={target} rel={rel} className={buttonStyles} style={style} {...props}>
         {children}
       </Link>
     );

@@ -36,6 +36,7 @@ interface OrderData {
     country: string;
   };
   shippingMethod: string;
+  lineItems?: any[];
 }
 
 export default function OrderConfirmation() {
@@ -59,39 +60,15 @@ export default function OrderConfirmation() {
     try {
       setLoading(true);
       
-      // In a real implementation, you would fetch order details from your backend
-      // For now, we'll create mock data based on the session
-      const mockOrder: OrderData = {
-        id: "mock-order-123",
-        sessionId: sessionId,
-        customerEmail: "customer@example.com",
-        customerName: "John Doe",
-        productType: "premium",
-        bookTitle: "Adventure Story",
-        characterName: "Hero",
-        total: 5999,
-        status: "completed",
-        createdAt: new Date().toISOString(),
-        date: new Date().toLocaleDateString(),
-        estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        book: {
-          title: "Adventure Story",
-          coverImage: "/images/Hero.png",
-          pages: 25
-        },
-        shippingAddress: {
-          name: 'Emma Rodriguez',
-          line1: '123 Main Street',
-          line2: 'Apt 4B',
-          city: 'Chicago',
-          state: 'IL',
-          postalCode: '60601',
-          country: 'United States'
-        },
-        shippingMethod: 'Standard Shipping (5-7 business days)'
-      };
+      // Fetch real order details from our API
+      const response = await fetch(`/api/order-details?session_id=${sessionId}`);
       
-      setOrder(mockOrder);
+      if (!response.ok) {
+        throw new Error('Failed to fetch order details');
+      }
+      
+      const orderData = await response.json();
+      setOrder(orderData);
     } catch (err) {
       console.error('Error fetching order details:', err);
       setError('Failed to load order details. Please contact support.');

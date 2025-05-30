@@ -37,9 +37,6 @@ export default function Footer() {
             <h4 className="font-montserrat font-bold text-lg mb-4">Company</h4>
             <ul className="space-y-2">
               <li><Link href="/about" className="text-gray-400 hover:text-white transition-colors">About Us</Link></li>
-              <li><Link href="/team" className="text-gray-400 hover:text-white transition-colors">Our Team</Link></li>
-              <li><Link href="/careers" className="text-gray-400 hover:text-white transition-colors">Careers</Link></li>
-              <li><Link href="/press" className="text-gray-400 hover:text-white transition-colors">Press</Link></li>
               <li><Link href="/contact" className="text-gray-400 hover:text-white transition-colors">Contact</Link></li>
             </ul>
           </div>
@@ -47,10 +44,7 @@ export default function Footer() {
           <div>
             <h4 className="font-montserrat font-bold text-lg mb-4">Products</h4>
             <ul className="space-y-2">
-              <li><Link href="/products/storybooks" className="text-gray-400 hover:text-white transition-colors">Storybooks</Link></li>
               <li><Link href="/products/gift-cards" className="text-gray-400 hover:text-white transition-colors">Gift Cards</Link></li>
-              <li><Link href="/products/bulk-orders" className="text-gray-400 hover:text-white transition-colors">Bulk Orders</Link></li>
-              <li><Link href="/products/for-schools" className="text-gray-400 hover:text-white transition-colors">For Schools</Link></li>
               <li><Link href="/pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</Link></li>
             </ul>
           </div>
@@ -61,7 +55,6 @@ export default function Footer() {
               <li><Link href="/how-it-works" className="text-gray-400 hover:text-white transition-colors">How It Works</Link></li>
               <li><Link href="/examples" className="text-gray-400 hover:text-white transition-colors">Examples</Link></li>
               <li><Link href="/faq" className="text-gray-400 hover:text-white transition-colors">FAQ</Link></li>
-              <li><Link href="/blog" className="text-gray-400 hover:text-white transition-colors">Blog</Link></li>
               <li><Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms" className="text-gray-400 hover:text-white transition-colors">Terms of Service</Link></li>
             </ul>

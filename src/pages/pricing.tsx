@@ -31,7 +31,7 @@ export default function PricingPage() {
         "Up to 10 character photos",
         "Personal message on first page",
         "Digital eBook included",
-        "Expedited shipping (8-11 business days after proof approval, +$15)"
+        "Standard shipping (12-15 business days after proof approval)"
       ],
       popular: true,
       buttonText: "Choose Premium Adventure"
@@ -39,7 +39,7 @@ export default function PricingPage() {
     {
       name: "Deluxe Kingdom",
       price: 89.99,
-      description: "Everything above + coloring pages and priority shipping",
+      description: "Premium features with coloring pages and expedited shipping",
       features: [
         "17-page personalized storybook",
         "Deluxe hardcover with special binding",
@@ -48,7 +48,7 @@ export default function PricingPage() {
         "Personal message on first page",
         "Digital eBook included",
         "Coloring pages featuring your characters",
-        "Priority shipping (5-8 business days after proof approval, +$30)"
+        "Expedited shipping (8-11 business days after proof approval)"
       ],
       popular: false,
       buttonText: "Choose Deluxe Kingdom"

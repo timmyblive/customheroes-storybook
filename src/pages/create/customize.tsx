@@ -10,6 +10,7 @@ import Card from '../../components/ui/Card';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { getBook, BookData } from '../../utils/bookService'; // Import BookData
+import { saveFormData, getFormData, saveCurrentStep, setupBrowserNavigationHandlers } from '../../utils/formDataManager';
 
 // Define the steps for the creation process
 const steps = [
@@ -46,6 +47,18 @@ export default function CustomizeBook() {
     bookTitle: '',
     quantity: ''
   });
+
+  // Save form data to localStorage
+  const saveCustomizeFormData = () => {
+    saveFormData('customize_bookTitle', bookTitle);
+    saveFormData('customize_selectedCover', selectedCover);
+    saveFormData('customize_selectedSize', selectedSize);
+    saveFormData('customize_selectedPaper', selectedPaper);
+    saveFormData('customize_selectedFinish', selectedFinish);
+    saveFormData('customize_quantity', quantity);
+    saveFormData('customize_pageCount', pageCount);
+    saveCurrentStep(4); // Customize Book is step 4
+  };
 
   // Calculate price based on selections
   const calculatePrice = () => {
@@ -103,33 +116,83 @@ export default function CustomizeBook() {
 
   // Fetch book data when component mounts and bookId is available
   useEffect(() => {
-    if (bookId && typeof bookId === 'string') {
-      const fetchBook = async () => {
-        try {
-          setIsLoadingBook(true);
-          setError(null);
-          // Import and use getBook from bookService
-          const { getBook } = await import('../../utils/bookService');
-          const bookData: BookData = await getBook(bookId as string);
-          setStory(bookData);
-          setBookTitle(bookData.title);
-          setIsLoadingBook(false);
-        } catch (err: unknown) {
-          console.error('Error fetching book:', err);
-          setError(err instanceof Error ? err.message : String(err) || 'Failed to load book data');
-          setIsLoadingBook(false);
-        }
-      };
-      
-      fetchBook();
+    // Save current state when component mounts
+    saveCustomizeFormData();
+    
+    // Set up event listeners for browser navigation
+    const cleanup = setupBrowserNavigationHandlers(saveCustomizeFormData);
+    
+    return cleanup;
+  }, [bookTitle, selectedCover, selectedSize, selectedPaper, selectedFinish, quantity, pageCount]);
+
+  // Load saved form data
+  useEffect(() => {
+    const savedTitle = getFormData('customize_bookTitle');
+    if (typeof savedTitle === 'string') {
+      setBookTitle(savedTitle);
     }
-  }, [bookId]);
+    
+    const savedCover = getFormData('customize_selectedCover');
+    if (typeof savedCover === 'string') {
+      setSelectedCover(savedCover);
+    }
+    
+    const savedSize = getFormData('customize_selectedSize');
+    if (typeof savedSize === 'string') {
+      setSelectedSize(savedSize);
+    }
+    
+    const savedPaper = getFormData('customize_selectedPaper');
+    if (typeof savedPaper === 'string') {
+      setSelectedPaper(savedPaper);
+    }
+    
+    const savedFinish = getFormData('customize_selectedFinish');
+    if (typeof savedFinish === 'string') {
+      setSelectedFinish(savedFinish);
+    }
+    
+    const savedQuantity = getFormData('customize_quantity');
+    if (typeof savedQuantity === 'number') {
+      setQuantity(savedQuantity);
+    }
+    
+    const savedPageCount = getFormData('customize_pageCount');
+    if (typeof savedPageCount === 'number') {
+      setPageCount(savedPageCount);
+    }
+  }, []);
+
+  // Fetch book data when component mounts
+  useEffect(() => {
+    if (bookId) {
+      setIsLoadingBook(true);
+      getBook(bookId as string)
+        .then(data => {
+          setStory(data);
+          // Only set book title if we don't have a saved one
+          if (!bookTitle) {
+            setBookTitle(data.title || '');
+          }
+          setIsLoadingBook(false);
+        })
+        .catch(err => {
+          console.error('Error fetching book:', err);
+          setError('Failed to load book data. Please try again.');
+          setIsLoadingBook(false);
+        });
+    }
+  }, [bookId, bookTitle]);
 
   // Handle continue to next step
   const handleContinue = () => {
     if (!validateForm()) {
       return;
     }
+    
+    // Save form data before navigating
+    saveCustomizeFormData();
+    saveCurrentStep(5); // Next step is Review & Order (step 5)
     
     setIsLoading(true);
     
@@ -494,7 +557,12 @@ export default function CustomizeBook() {
                       onClick={handleContinue}
                       disabled={isLoading}
                     >
-                      {isLoading ? 'Processing...' : 'Continue to Review'}
+                      {isLoading ? 'Processing...' : (
+                        <>
+                          <span className="sm:hidden">Review</span>
+                          <span className="hidden sm:inline">Continue to Review</span>
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}

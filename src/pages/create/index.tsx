@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { saveFormData, getFormData, saveCurrentStep, setupBrowserNavigationHandlers } from '../../utils/formDataManager';
 import Layout from '../../components/layout/Layout';
 import Input from '../../components/ui/Input';
 import TextArea from '../../components/ui/TextArea';
@@ -9,15 +10,15 @@ import ErrorMessage from '../../components/ui/ErrorMessage';
 import Image from 'next/image';
 import PhotoEditor from '../../components/ui/PhotoEditor';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBaby, faChild, faPersonRunning, faCrown, faCompass, faRocket, faBookOpen, faPalette, faPencilAlt, faCameraRetro, faDragon, faSmileBeam, faShoppingCart, faScroll, faGift, faTabletAlt, faMagicWandSparkles, faCheckCircle, faCircle, faCalculator } from '@fortawesome/free-solid-svg-icons';
+import { faBaby, faChild, faPersonRunning, faCrown, faCompass, faRocket, faBookOpen, faPalette, faPencilAlt, faCameraRetro, faDragon, faSmileBeam, faShoppingCart, faScroll, faGift, faTabletAlt, faMagicWandSparkles, faCheckCircle, faCircle, faCalculator, faUser } from '@fortawesome/free-solid-svg-icons';
 import { createBook, getBookStatus, getBook } from '../../utils/bookService';
 
 // Define the steps for the creation process
 const steps = [
-  { title: 'Upload Photos' },             // Step 1
-  { title: 'Story & Style Details' },   // Step 2: Story Description, Styles, Age, Theme, Length
-  { title: 'Review & Payment' },        // Step 3: Paywall
-  { title: 'Order Review' }              // Step 4: Order Review
+  { title: 'Customer Information' },      // Step 1: Customer Info
+  { title: 'Upload Photos' },            // Step 2: Upload Photos
+  { title: 'Story & Style Details' },    // Step 3: Story Description, Styles, Age, Theme, Length
+  { title: 'Review & Payment' },         // Step 4: Paywall
 ];
 
 // Define the character photo interface
@@ -38,6 +39,14 @@ interface BookState {
   bookData: unknown | null;
 }
 
+// Define the gift card interface
+interface GiftCard {
+  code: string;
+  remainingAmount: number;
+  currency: string;
+  status: string;
+}
+
 export default function CreateStorybook() {
   const [currentStep, setCurrentStep] = useState(1);
   const [characterPhotos, setCharacterPhotos] = useState<CharacterPhoto[]>([]);
@@ -47,12 +56,23 @@ export default function CreateStorybook() {
   const [selectedPageCount, setSelectedPageCount] = useState<string>('17');
   const [selectedIllustrationStyle, setSelectedIllustrationStyle] = useState('default'); // Restored for UI style selection
   const [personalMessage, setPersonalMessage] = useState('');
-  const [selectedPackage, setSelectedPackage] = useState<'basic' | 'premium' | 'deluxe' | ''>('');
+  const [bookTitle, setBookTitle] = useState('');
+  const [giftCardCode, setGiftCardCode] = useState('');
+  const [appliedGiftCard, setAppliedGiftCard] = useState<GiftCard | null>(null);
+  const [isCheckingGiftCard, setIsCheckingGiftCard] = useState(false);
+  const [giftCardError, setGiftCardError] = useState<string | null>(null);
+  // Set a default package to avoid validation errors
+  const [selectedPackage, setSelectedPackage] = useState<'basic' | 'premium' | 'deluxe'>('basic');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null);
   const [editingPhotoMode, setEditingPhotoMode] = useState<'info' | 'image' | null>(null);
   const [projectNumber, setProjectNumber] = useState<string>('');
   const [isClient, setIsClient] = useState(false);
+  const [additionalCopies, setAdditionalCopies] = useState(0);
+  const [giftCardAmount, setGiftCardAmount] = useState(0);
+  const [customGiftCardAmount, setCustomGiftCardAmount] = useState('');
   
   // Book generation state
   const [bookState, setBookState] = useState<BookState>({
@@ -66,11 +86,143 @@ export default function CreateStorybook() {
   // Status polling interval
   const [statusInterval, setStatusInterval] = useState<number | null>(null);
   
-  // Generate a stable project number on component mount
+  // Save all form data to localStorage
+  const saveCreationFormData = () => {
+    // Save each piece of data with a specific key
+    saveFormData('creation_currentStep', currentStep);
+    
+    // For character photos, we need to exclude the File objects since they can't be serialized
+    const photosForStorage = characterPhotos.map(photo => ({
+      url: photo.url,
+      name: photo.name,
+      relationship: photo.relationship,
+      age: photo.age
+      // Exclude the 'file' property as it cannot be serialized
+    }));
+    saveFormData('creation_characterPhotos', photosForStorage);
+    
+    saveFormData('creation_storyDescription', storyDescription);
+    saveFormData('creation_selectedAgeGroup', selectedAgeGroup);
+    saveFormData('creation_selectedTheme', selectedTheme);
+    saveFormData('creation_selectedPageCount', selectedPageCount);
+    saveFormData('creation_selectedIllustrationStyle', selectedIllustrationStyle);
+    saveFormData('creation_personalMessage', personalMessage);
+    saveFormData('creation_bookTitle', bookTitle);
+    saveFormData('creation_customerEmail', customerEmail);
+    saveFormData('creation_customerName', customerName);
+    saveFormData('creation_selectedPackage', selectedPackage);
+    saveFormData('creation_additionalCopies', additionalCopies);
+    saveFormData('creation_giftCardAmount', giftCardAmount);
+    
+    // Also save the current step in a dedicated field for easy access
+    saveCurrentStep(currentStep);
+  };
+  
+  // Generate a stable project number on component mount and load saved data
   useEffect(() => {
     setProjectNumber(String(Math.floor(Math.random() * 90000) + 10000));
     setIsClient(true); // Set client to true after mount
+    
+    // Load saved form data if available
+    const savedStep = getFormData('creation_currentStep');
+    if (typeof savedStep === 'number') {
+      setCurrentStep(savedStep);
+    }
+    
+    const savedPhotos = getFormData('creation_characterPhotos');
+    if (Array.isArray(savedPhotos)) {
+      // Only set if photos have the required properties
+      const validPhotos = savedPhotos.filter(photo => 
+        photo && typeof photo === 'object' && photo.name && photo.relationship
+      );
+      if (validPhotos.length > 0) {
+        // Note: These photos won't have File objects, so they can't be uploaded again
+        // Users will need to re-upload photos if they navigate back to this step
+        setCharacterPhotos(validPhotos.map(photo => ({
+          ...photo,
+          file: null as any // Temporarily set to null, will need re-upload
+        })) as CharacterPhoto[]);
+      }
+    }
+    
+    const savedDescription = getFormData('creation_storyDescription');
+    if (typeof savedDescription === 'string') {
+      setStoryDescription(savedDescription);
+    }
+    
+    const savedAgeGroup = getFormData('creation_selectedAgeGroup');
+    if (typeof savedAgeGroup === 'string') {
+      setSelectedAgeGroup(savedAgeGroup);
+    }
+    
+    const savedTheme = getFormData('creation_selectedTheme');
+    if (typeof savedTheme === 'string') {
+      setSelectedTheme(savedTheme);
+    }
+    
+    const savedPageCount = getFormData('creation_selectedPageCount');
+    if (typeof savedPageCount === 'string') {
+      setSelectedPageCount(savedPageCount);
+    }
+    
+    const savedStyle = getFormData('creation_selectedIllustrationStyle');
+    if (typeof savedStyle === 'string') {
+      setSelectedIllustrationStyle(savedStyle);
+    }
+    
+    const savedMessage = getFormData('creation_personalMessage');
+    if (typeof savedMessage === 'string') {
+      setPersonalMessage(savedMessage);
+    }
+    
+    const savedTitle = getFormData('creation_bookTitle');
+    if (typeof savedTitle === 'string') {
+      setBookTitle(savedTitle);
+    }
+    
+    const savedEmail = getFormData('creation_customerEmail');
+    if (typeof savedEmail === 'string') {
+      setCustomerEmail(savedEmail);
+    }
+    
+    const savedName = getFormData('creation_customerName');
+    if (typeof savedName === 'string') {
+      setCustomerName(savedName);
+    }
+    
+    const savedPackage = getFormData('creation_selectedPackage');
+    if (savedPackage && ['basic', 'premium', 'deluxe'].includes(savedPackage)) {
+      setSelectedPackage(savedPackage as 'basic' | 'premium' | 'deluxe');
+    }
+    
+    const savedAdditionalCopies = getFormData('creation_additionalCopies');
+    if (typeof savedAdditionalCopies === 'number') {
+      setAdditionalCopies(savedAdditionalCopies);
+    }
+    
+    const savedGiftCardAmount = getFormData('creation_giftCardAmount');
+    if (typeof savedGiftCardAmount === 'number') {
+      setGiftCardAmount(savedGiftCardAmount);
+    }
   }, []);
+  
+  // Set up event listeners for browser navigation
+  useEffect(() => {
+    if (!isClient) return;
+    
+    // Set up event listeners for browser navigation
+    const cleanup = setupBrowserNavigationHandlers(saveCreationFormData);
+    
+    return () => {
+      cleanup();
+      // Also clean up status interval if it exists
+      if (statusInterval) {
+        clearInterval(statusInterval);
+      }
+    };
+  }, [isClient, statusInterval, currentStep, characterPhotos, storyDescription, selectedAgeGroup, 
+      selectedTheme, selectedPageCount, selectedIllustrationStyle, personalMessage, 
+      bookTitle, customerEmail, customerName, selectedPackage, additionalCopies, giftCardAmount]);
   
   // Clean up interval on unmount
   useEffect(() => {
@@ -81,6 +233,8 @@ export default function CreateStorybook() {
     };
   }, [statusInterval]);
   const [errors, setErrors] = useState({
+    customerName: '',
+    customerEmail: '',
     photos: '',
     characterNames: '',
     storyDescription: '',
@@ -90,7 +244,8 @@ export default function CreateStorybook() {
     illustrationStyle: '',
     payment: '', // Added for paywall step errors
     characterAges: '', // Added for age validation
-    personalMessage: '' // Added for personal message validation
+    personalMessage: '', // Added for personal message validation
+    bookTitle: '', // Added for book title validation
   });
 
   // Handle file upload
@@ -195,7 +350,23 @@ export default function CreateStorybook() {
     let isValid = true;
     const newErrors = { ...errors };
 
-    if (currentStep === 1) { // Step 1: Upload Photos
+    if (currentStep === 1) { // Step 1: Customer Information
+      if (!customerName.trim()) {
+        newErrors.customerName = 'Please enter your full name';
+        isValid = false;
+      } else {
+        newErrors.customerName = '';
+      }
+      if (!customerEmail.trim()) {
+        newErrors.customerEmail = 'Please enter your email address';
+        isValid = false;
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+        newErrors.customerEmail = 'Please enter a valid email address';
+        isValid = false;
+      } else {
+        newErrors.customerEmail = '';
+      }
+    } else if (currentStep === 2) { // Step 2: Upload Photos
       if (characterPhotos.length === 0) {
         newErrors.photos = 'Please upload at least one photo';
         isValid = false;
@@ -216,7 +387,7 @@ export default function CreateStorybook() {
       } else {
         newErrors.characterAges = '';
       }
-    } else if (currentStep === 2) { // New Step 2: Story & Style Details
+    } else if (currentStep === 3) { // Step 3: Story & Style Details
       if (!storyDescription.trim()) {
         newErrors.storyDescription = 'Please describe your story plot';
         isValid = false;
@@ -253,7 +424,13 @@ export default function CreateStorybook() {
       } else {
         newErrors.personalMessage = '';
       }
-    } else if (currentStep === 3) { // New Step 3: Review & Payment
+      if (!bookTitle.trim()) {
+        newErrors.bookTitle = 'Please enter a title for your book';
+        isValid = false;
+      } else {
+        newErrors.bookTitle = '';
+      }
+    } else if (currentStep === 4) { // Step 4: Review & Payment
       if (!selectedPackage) {
         newErrors.payment = 'Please select a package';
         isValid = false;
@@ -270,103 +447,138 @@ export default function CreateStorybook() {
 
   // Handle next step
   const handleNextStep = () => {
+    // Validate current step
     if (!validateStep()) {
       return;
     }
     
     if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
-      // Scroll to top when moving to next step
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      
+      // Save form data and current step
+      saveFormData('creation_currentStep', nextStep);
+      saveCurrentStep(nextStep);
+      saveCreationFormData();
     }
+    
+    // Scroll to top when moving to next step
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Handle previous step
   const handlePrevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+      
+      // Save form data and current step
+      saveFormData('creation_currentStep', prevStep);
+      saveCurrentStep(prevStep);
+      saveCreationFormData();
+      
       // Scroll to top when moving to previous step
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  // Handle form submission (triggered from new Step 3)
+  // Handle form submission (triggered from Step 4 Review & Payment)
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
-    // Validation for Step 3 (Paywall) would ideally happen before this or be part of its own logic.
-    // For now, assume previous steps are valid if this is called.
     
-    setCurrentStep(4); // Immediately go to Order Review (new Step 4)
     setIsLoading(true);
     setBookState(prev => ({ ...prev, status: 'submitting', progress: 0.1, error: null }));
 
-    if (statusInterval) {
-      window.clearInterval(statusInterval);
-      setStatusInterval(null);
-    }
-
-    const formData = new FormData();
-    characterPhotos.forEach((photo, index) => {
-      formData.append(`character_photos[${index}].name`, photo.name);
-      formData.append(`character_photos[${index}].relationship`, photo.relationship || '');
-      formData.append(`character_photos[${index}].age`, photo.age || ''); // Add age to formData
-      formData.append(`character_photos[${index}].image_file`, photo.file);
-    });
-    formData.append('story_description', storyDescription);
-    formData.append('target_age_group', selectedAgeGroup);
-    formData.append('story_theme', selectedTheme);
-    formData.append('page_count', selectedPageCount);
-    formData.append('illustration_style', selectedIllustrationStyle);
-    formData.append('personal_message', personalMessage); // Added personal message
-    formData.append('package', selectedPackage); // Added package selection
-    formData.append('project_id', projectNumber);
-
     try {
-      const createdBookData = await createBook(formData);
-      const currentBookId = createdBookData.bookId; // Use local var for polling, corrected to bookId
-      setBookState(prev => ({ ...prev, bookId: currentBookId, status: 'processing', progress: 0.2 }));
-
-      const intervalId = window.setInterval(async () => {
-        if (currentBookId) {
-          try {
-            const statusData = await getBookStatus(currentBookId) as { progress: number; status: BookState['status']; error?: string };
-            setBookState(prev => ({
-              ...prev,
-              progress: statusData.progress,
-              status: statusData.status, // Type is now BookState['status'] via cast on statusData
-              error: statusData.error || null, // Accessing error from the cast type
-            }));
-
-            if (statusData.status === 'completed') {
-              window.clearInterval(intervalId);
-              setStatusInterval(null);
-              setIsLoading(false);
-              window.location.href = `/create/confirmation?book_id=${currentBookId}`;
-            } else if (statusData.status === 'failed') {
-              window.clearInterval(intervalId);
-              setStatusInterval(null);
-              setIsLoading(false);
-            }
-          } catch (pollError) {
-            console.error('Error polling status:', pollError);
-            setBookState(prev => ({ ...prev, status: 'failed', error: 'Failed to get story status.' }));
-            window.clearInterval(intervalId);
-            setStatusInterval(null);
-            setIsLoading(false);
-          }
+      // Upload character images first
+      let characterPhotoUrl = '';
+      
+      if (characterPhotos.length > 0 && characterPhotos[0].file) {
+        setBookState(prev => ({ ...prev, progress: 0.3, status: 'processing' }));
+        console.log('Uploading character photo...');
+        
+        const formData = new FormData();
+        formData.append('image', characterPhotos[0].file);
+        
+        const uploadResponse = await fetch('/api/upload-image', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload character photo');
         }
-      }, 5000);
-      setStatusInterval(intervalId);
+        
+        const uploadResult = await uploadResponse.json();
+        characterPhotoUrl = uploadResult.url;
+      } else if (characterPhotos.length > 0 && characterPhotos[0].url) {
+        // Use existing URL if photo was loaded from localStorage
+        characterPhotoUrl = characterPhotos[0].url;
+        console.log('Using existing character photo URL from localStorage');
+      }
+      
+      setBookState(prev => ({ ...prev, progress: 0.6, status: 'processing' }));
+      console.log('Creating order...');
 
-    } catch (error: any) {
-      console.error('Error creating book:', error);
-      setBookState(prev => ({
-        ...prev,
-        status: 'failed',
-        error: error.message || 'An unexpected error occurred. Please try again.'
+      // Ensure we have a valid package type
+      const packageType = selectedPackage || 'basic';
+      console.log('Using package type:', packageType);
+      console.log('Selected package state:', selectedPackage);
+      console.log('Package selection components rendered:', {
+        basic: document.querySelector('[data-package="basic"]') !== null,
+        premium: document.querySelector('[data-package="premium"]') !== null,
+        deluxe: document.querySelector('[data-package="deluxe"]') !== null
+      });
+      
+      // Prepare order data for Stripe
+      const orderData = {
+        productType: packageType,
+        customerEmail: customerEmail,
+        customerName: customerName,
+        bookTitle: bookTitle || 'My Custom Adventure',
+        characterName: characterPhotos[0]?.name || '',
+        characterAge: characterPhotos[0]?.age || '',
+        personalMessage: personalMessage,
+        artStyle: selectedIllustrationStyle,
+        characterPhotoUrl: characterPhotoUrl,
+        additionalCopies: additionalCopies,
+        giftCardAmount: giftCardAmount,
+        appliedGiftCardDiscount: appliedGiftCard ? appliedGiftCard.remainingAmount : 0,
+        appliedGiftCardCode: appliedGiftCard ? appliedGiftCard.code : null,
+      };
+
+      // Save order data for the review page
+      saveFormData('checkout_orderData', orderData);
+      
+      // Create Stripe checkout session
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { url } = await response.json();
+      
+      setBookState(prev => ({ ...prev, progress: 1.0, status: 'processing' }));
+      console.log('Redirecting to payment...');
+      
+      // Redirect to Stripe Checkout
+      window.location.href = url;
+      
+    } catch (error) {
+      console.error('Checkout error:', error);
+      setBookState(prev => ({ 
+        ...prev, 
+        status: 'failed', 
+        error: 'Failed to process payment. Please try again.' 
       }));
       setIsLoading(false);
-      // UI for failure is handled within Step 4 rendering
     }
   };
 
@@ -411,7 +623,7 @@ export default function CreateStorybook() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <FontAwesomeIcon 
-                    icon={currentStep === 1 ? faCameraRetro : currentStep === 2 ? faPencilAlt : currentStep === 3 ? faCrown : faRocket} 
+                    icon={currentStep === 1 ? faUser : currentStep === 2 ? faCameraRetro : currentStep === 3 ? faPencilAlt : faShoppingCart} 
                     className="text-2xl gentle-bounce" 
                   />
                   <h2 className="friendly-subtitle font-fredoka">
@@ -427,8 +639,75 @@ export default function CreateStorybook() {
             {/* Content */}
             <div className="p-8 md:p-10">
               <form onSubmit={handleSubmit}>
-                {/* Step 1: Upload Photos */}
+                {/* Step 1: Customer Information */}
                 {currentStep === 1 && (
+                  <div>
+                    <div className="text-center mb-8">
+                      <FontAwesomeIcon icon={faUser} className="text-6xl text-magic-orange mb-4 sparkle-animation" />
+                      <h3 className="friendly-2xl text-inkwell-black mb-4 font-fredoka">
+                        👋 Welcome to Custom Heroes!
+                      </h3>
+                      <div className="bg-lavender rounded-magical p-6 border-l-4 border-magic-orange">
+                        <p className="friendly-text text-charcoal leading-relaxed">
+                          We're excited to help you create a magical storybook adventure! To get started, please provide your contact information.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-8 bg-paper-white rounded-magical p-6 shadow-gentle relative z-10" style={{ pointerEvents: 'auto' }}>
+                      <div className="flex items-center gap-3 mb-6">
+                        <FontAwesomeIcon icon={faUser} className="text-2xl text-magic-orange" />
+                        <h3 className="friendly-lg font-fredoka text-inkwell-black font-semibold">
+                          👤 Customer Information
+                        </h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block friendly-text font-medium text-charcoal mb-2">
+                            Full Name *
+                          </label>
+                          <Input
+                            id="customerName"
+                            type="text"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            placeholder="Enter your full name"
+                            className="w-full"
+                            required
+                          />
+                          {errors.customerName && (
+                            <p className="text-reading-red text-sm">{errors.customerName}</p>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <label className="block friendly-text font-medium text-charcoal mb-2">
+                            Email Address *
+                          </label>
+                          <Input
+                            id="customerEmail"
+                            type="email"
+                            value={customerEmail}
+                            onChange={(e) => setCustomerEmail(e.target.value)}
+                            placeholder="Enter your email address"
+                            className="w-full"
+                            required
+                          />
+                          {errors.customerEmail && (
+                            <p className="text-reading-red text-sm">{errors.customerEmail}</p>
+                          )}
+                          <p className="text-sm text-charcoal/70 mt-1">
+                            We'll send order updates and delivery notifications to this email
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Step 2: Upload Photos */}
+                {currentStep === 2 && (
                   <div>
                     <div className="text-center mb-8">
                       <FontAwesomeIcon icon={faCameraRetro} className="text-6xl text-magic-orange mb-4 sparkle-animation" />
@@ -599,8 +878,8 @@ export default function CreateStorybook() {
                           <div className="space-y-6" style={{ pointerEvents: 'auto' }}>
                             <div style={{ pointerEvents: 'auto' }}>
                               <Input
-                                label="Character Name *"
                                 id={`character-name-${editingPhotoIndex}`}
+                                label="Character Name *"
                                 placeholder="e.g., Emma, Grandpa John, Princess Luna"
                                 value={characterPhotos[editingPhotoIndex].name}
                                 onChange={(e) => updateCharacterName(editingPhotoIndex, e.target.value)}
@@ -611,8 +890,8 @@ export default function CreateStorybook() {
                             
                             <div style={{ pointerEvents: 'auto' }}>
                               <Input
-                                label="Character Age *"
                                 id={`character-age-${editingPhotoIndex}`}
+                                label="Character Age *"
                                 placeholder="e.g., 5, 8, 12, Adult"
                                 value={characterPhotos[editingPhotoIndex].age}
                                 onChange={(e) => updateCharacterAge(editingPhotoIndex, e.target.value)}
@@ -637,9 +916,11 @@ export default function CreateStorybook() {
                                 <option value="sister">Sister</option>
                                 <option value="parent">Mom/Dad</option>
                                 <option value="grandparent">Grandma/Grandpa</option>
+                                <option value="aunt-uncle">Aunt/Uncle</option>
                                 <option value="friend">Best Friend</option>
                                 <option value="cousin">Cousin</option>
                                 <option value="pet">Pet</option>
+                                <option value="stuffed-animal">Stuffed Animal</option>
                                 <option value="other">Other Family/Friend</option>
                               </select>
                             </div>
@@ -664,13 +945,12 @@ export default function CreateStorybook() {
                       {errors.characterAges && (!editingPhotoMode || editingPhotoIndex === null) && (
                          <p className="text-reading-red text-sm mt-4">{errors.characterAges}</p>
                       )}
-                      
                     </div>
                   </div>
                 )}
                 
-                {/* Step 2: Story & Style Details */}
-                {currentStep === 2 && (
+                {/* Step 3: Story & Style Details */}
+                {currentStep === 3 && (
                   <div style={{ pointerEvents: 'auto' }}>
                     <div className="text-center mb-8">
                       <FontAwesomeIcon icon={faPencilAlt} className="text-6xl text-tale-purple mb-4 sparkle-animation" />
@@ -702,12 +982,39 @@ export default function CreateStorybook() {
                       )}
                       <div style={{ pointerEvents: 'auto' }}>
                         <TextArea
-                          label="Personal Message *"
                           id="personalMessage"
+                          label="Personal Message *"
                           placeholder="Dear Emma, this magical adventure was created just for you! May you always believe in the magic within yourself and never stop dreaming big. Love, Mommy & Daddy ❤️"
                           rows={4}
                           value={personalMessage}
                           onChange={(e) => setPersonalMessage(e.target.value)}
+                          required
+                          className="friendly-input"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Book Title */}
+                    <div className="mb-8 bg-cream rounded-magical p-6 shadow-gentle relative z-10" style={{ pointerEvents: 'auto' }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <FontAwesomeIcon icon={faBookOpen} className="text-2xl text-tale-purple" />
+                        <h3 className="friendly-lg font-fredoka text-inkwell-black font-semibold">
+                          📖 Book Title
+                        </h3>
+                      </div>
+                      <p className="friendly-text text-charcoal mb-4">
+                        Give your magical storybook a title!
+                      </p>
+                      {errors.bookTitle && (
+                        <p className="text-reading-red friendly-text mb-3">{errors.bookTitle}</p>
+                      )}
+                      <div style={{ pointerEvents: 'auto' }}>
+                        <Input
+                          id="bookTitle"
+                          label="Book Title *"
+                          placeholder="e.g., Emma's Magical Adventure"
+                          value={bookTitle}
+                          onChange={(e) => setBookTitle(e.target.value)}
                           required
                           className="friendly-input"
                         />
@@ -730,8 +1037,8 @@ export default function CreateStorybook() {
                       )}
                       <div style={{ pointerEvents: 'auto' }}>
                         <TextArea
-                          label="Story Description / Plot Ideas *"
                           id="storyDescription"
+                          label="Story Description / Plot Ideas *"
                           placeholder="A magical adventure where brave Emma explores an enchanted forest to find a legendary glowing crystal. She meets friendly woodland creatures and overcomes exciting challenges with courage and kindness!"
                           rows={4}
                           value={storyDescription}
@@ -920,9 +1227,9 @@ export default function CreateStorybook() {
                     </div>
                   </div>
                 )}
-
-                {/* Step 3: Review & Payment */}
-                {currentStep === 3 && (
+                
+                {/* Step 4: Review & Payment */}
+                {currentStep === 4 && (
                   <div style={{ pointerEvents: 'auto', zIndex: 10 }}>
                     <div className="text-center mb-8">
                       <FontAwesomeIcon icon={faShoppingCart} className="text-6xl text-magic-orange mb-4 sparkle-animation" />
@@ -945,12 +1252,13 @@ export default function CreateStorybook() {
                         </h3>
                       </div>
                       <div className="space-y-3 friendly-text text-charcoal">
+                        <p><strong>📖 Book Title:</strong> {bookTitle}</p>
                         <p><strong>✨ Story Plot:</strong> {storyDescription ? `"${storyDescription.substring(0, 100)}${storyDescription.length > 100 ? '...' : ''}"` : 'Not yet specified'}</p>
                         <p><strong>🎨 Art Style:</strong> {selectedIllustrationStyle !== 'default' ? selectedIllustrationStyle.charAt(0).toUpperCase() + selectedIllustrationStyle.slice(1) : 'Not yet selected'}</p>
-                        <p><strong>👶 Perfect For:</strong> {selectedAgeGroup || 'Not yet selected'} years old</p>
-                        <p><strong>🌟 Theme:</strong> {selectedTheme ? selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1) : 'Not yet selected'}</p>
-                        <p><strong>📖 Length:</strong> {selectedPageCount} magical pages</p>
-                        <p><strong>👥 Characters:</strong> {characterPhotos.length} wonderful character{characterPhotos.length !== 1 ? 's' : ''}</p>
+                        <p><strong>👶 Age Group:</strong> {selectedAgeGroup || 'Not selected'} years old</p>
+                        <p><strong>🌟 Theme:</strong> {selectedTheme ? selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1) : 'Not selected'}</p>
+                        <p><strong>📚 Story Length:</strong> {selectedPageCount} magical pages</p>
+                        <p><strong>📖 Book Title:</strong> {bookTitle}</p>
                       </div>
                     </div>
 
@@ -969,163 +1277,225 @@ export default function CreateStorybook() {
                         <p className="text-reading-red friendly-text mb-4">{errors.payment}</p>
                       )}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6" style={{ pointerEvents: 'auto' }}>
-                        <OptionCard 
-                          icon={<FontAwesomeIcon icon={faBookOpen} className="text-4xl text-adventure-green" />} 
-                          title="📚 Basic Magic"
-                          description="$49.99 - Your personalized storybook with beautiful illustrations"
-                          selected={selectedPackage === 'basic'}
-                          onClick={() => setSelectedPackage('basic')}
-                        />
-                        <OptionCard 
-                          icon={<FontAwesomeIcon icon={faTabletAlt} className="text-4xl text-tale-purple" />} 
-                          title="✨ Premium Adventure"
-                          description="$59.99 - Physical book + digital eBook for reading anywhere"
-                          selected={selectedPackage === 'premium'}
-                          onClick={() => setSelectedPackage('premium')}
-                        />
-                        <OptionCard 
-                          icon={<FontAwesomeIcon icon={faDragon} className="text-4xl text-magic-orange" />} 
-                          title="🏰 Deluxe Kingdom"
-                          description="$89.99 - Everything above + activity pack and coloring pages"
-                          selected={selectedPackage === 'deluxe'}
-                          onClick={() => setSelectedPackage('deluxe')}
-                        />
+                        <div data-package="basic">
+                          <OptionCard 
+                            icon={<FontAwesomeIcon icon={faBookOpen} className="text-4xl text-adventure-green" />} 
+                            title="📚 Basic Magic"
+                            description="$49.99 - Your personalized storybook with beautiful illustrations"
+                            selected={selectedPackage === 'basic'}
+                            onClick={() => setSelectedPackage('basic')}
+                          />
+                        </div>
+                        <div data-package="premium">
+                          <OptionCard 
+                            icon={<FontAwesomeIcon icon={faTabletAlt} className="text-4xl text-tale-purple" />} 
+                            title="✨ Premium Adventure"
+                            description="$59.99 - Physical book + digital eBook for reading anywhere"
+                            selected={selectedPackage === 'premium'}
+                            onClick={() => setSelectedPackage('premium')}
+                          />
+                        </div>
+                        <div data-package="deluxe">
+                          <OptionCard 
+                            icon={<FontAwesomeIcon icon={faDragon} className="text-4xl text-magic-orange" />} 
+                            title="🏰 Deluxe Kingdom"
+                            description="$89.99 - Everything above + activity pack and coloring pages"
+                            selected={selectedPackage === 'deluxe'}
+                            onClick={() => setSelectedPackage('deluxe')}
+                          />
+                        </div>
                       </div>
                       <div className="mt-6 bg-lavender rounded-magical p-4">
                         <p className="friendly-text text-charcoal text-center">
                           💳 Secure payment processing by Stripe • 📦 Free shipping on all orders
                         </p>
                       </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Step 4: Order Review */}
-                {currentStep === 4 && (
-                  <div style={{ pointerEvents: 'auto' }}>
-                    <div className="text-center mb-8">
-                      <FontAwesomeIcon icon={faCheckCircle} className="text-6xl text-adventure-green mb-4 sparkle-animation" />
-                      <h3 className="friendly-2xl text-inkwell-black mb-4 font-fredoka">
-                        🎉 Order Review
-                      </h3>
-                      <div className="bg-adventure-green/10 rounded-magical p-6 border-l-4 border-adventure-green">
-                        <p className="friendly-text text-charcoal leading-relaxed">
-                          Please review your magical storybook order before we begin creating your adventure!
+                      
+                      {/* Additional Copies */}
+                      <div className="mt-6 bg-cream rounded-magical p-6 shadow-gentle">
+                        <div className="flex items-center gap-3 mb-4">
+                          <FontAwesomeIcon icon={faBookOpen} className="text-2xl text-tale-purple" />
+                          <h3 className="friendly-lg font-fredoka text-inkwell-black font-semibold">
+                            📚 Additional Copies
+                          </h3>
+                        </div>
+                        <p className="friendly-text text-charcoal mb-4">
+                          Would you like additional copies of the same book? Each additional copy is $19.99
                         </p>
-                      </div>
-                    </div>
-
-                    {/* Complete Order Summary */}
-                    <div className="mb-8 bg-cream rounded-magical p-6 shadow-gentle relative z-10" style={{ pointerEvents: 'auto' }}>
-                      <div className="flex items-center gap-3 mb-6">
-                        <FontAwesomeIcon icon={faScroll} className="text-2xl text-tale-purple" />
-                        <h3 className="friendly-lg font-fredoka text-inkwell-black font-semibold">
-                          📜 Your Complete Order
-                        </h3>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Story Details */}
-                        <div className="space-y-4">
-                          <h4 className="friendly-lg font-fredoka text-inkwell-black font-semibold">📖 Story Details</h4>
-                          <div className="space-y-2 friendly-text text-charcoal">
-                            <p><strong>✨ Personal Message:</strong> {personalMessage ? `"${personalMessage.substring(0, 50)}${personalMessage.length > 50 ? '...' : ''}"` : 'Not specified'}</p>
-                            <p><strong>🌟 Adventure Plot:</strong> {storyDescription ? `"${storyDescription.substring(0, 50)}${storyDescription.length > 50 ? '...' : ''}"` : 'Not specified'}</p>
-                            <p><strong>🎨 Art Style:</strong> {selectedIllustrationStyle !== 'default' ? selectedIllustrationStyle.charAt(0).toUpperCase() + selectedIllustrationStyle.slice(1) : 'Default'}</p>
-                            <p><strong>👶 Age Group:</strong> {selectedAgeGroup || 'Not selected'} years old</p>
-                            <p><strong>🏰 Theme:</strong> {selectedTheme ? selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1) : 'Not selected'}</p>
-                            <p><strong>📚 Story Length:</strong> {selectedPageCount} pages</p>
-                          </div>
+                        <div className="flex items-center gap-4">
+                          <label className="friendly-text text-charcoal font-medium">Number of additional copies:</label>
+                          <select 
+                            value={additionalCopies} 
+                            onChange={(e) => setAdditionalCopies(parseInt(e.target.value))}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-magic-orange focus:border-transparent"
+                          >
+                            <option value={0}>0 additional copies</option>
+                            <option value={1}>1 additional copy (+$19.99)</option>
+                            <option value={2}>2 additional copies (+$39.98)</option>
+                            <option value={3}>3 additional copies (+$59.97)</option>
+                            <option value={4}>4 additional copies (+$79.96)</option>
+                            <option value={5}>5 additional copies (+$99.95)</option>
+                          </select>
                         </div>
+                      </div>
 
-                        {/* Characters & Package */}
+                      {/* Gift Card Purchase */}
+                      <div className="mt-6 bg-cream rounded-magical p-6 shadow-gentle">
+                        <div className="flex items-center gap-3 mb-4">
+                          <FontAwesomeIcon icon={faGift} className="text-2xl text-tale-purple" />
+                          <h3 className="friendly-lg font-fredoka text-inkwell-black font-semibold">
+                            🎁 Add a Gift Card
+                          </h3>
+                        </div>
+                        <p className="friendly-text text-charcoal mb-4">
+                          Add a digital gift card to your order - perfect for gifting!
+                        </p>
                         <div className="space-y-4">
-                          <h4 className="friendly-lg font-fredoka text-inkwell-black font-semibold">👥 Characters & Package</h4>
-                          <div className="space-y-2 friendly-text text-charcoal">
-                            <p><strong>👥 Characters:</strong> {characterPhotos.length} wonderful character{characterPhotos.length !== 1 ? 's' : ''}</p>
-                            {characterPhotos.map((photo, index) => (
-                              <div key={index} className="ml-4 text-sm">
-                                • {photo.name || `Character ${index + 1}`} ({photo.age || 'Age not specified'}) - {photo.relationship || 'Relationship not specified'}
-                              </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {[25, 50, 75, 100].map((amount) => (
+                              <button
+                                key={amount}
+                                onClick={() => setGiftCardAmount(amount)}
+                                className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                                  giftCardAmount === amount
+                                    ? 'border-magic-orange bg-magic-orange text-white'
+                                    : 'border-gray-300 bg-white text-charcoal hover:border-magic-orange'
+                                }`}
+                              >
+                                ${amount}
+                              </button>
                             ))}
-                            <p><strong>📦 Package:</strong> {
-                              selectedPackage === 'basic' ? '📚 Basic Magic ($49.99)' :
-                              selectedPackage === 'premium' ? '✨ Premium Adventure ($59.99)' :
-                              selectedPackage === 'deluxe' ? '🏰 Deluxe Kingdom ($89.99)' :
-                              'Not selected'
-                            }</p>
                           </div>
+                          <div className="flex items-center gap-3">
+                            <span className="friendly-text text-charcoal">Custom amount:</span>
+                            <input
+                              type="number"
+                              min="10"
+                              max="500"
+                              placeholder="$10-$500"
+                              value={customGiftCardAmount}
+                              onChange={(e) => {
+                                setCustomGiftCardAmount(e.target.value);
+                                const amount = parseInt(e.target.value);
+                                if (amount >= 10 && amount <= 500) {
+                                  setGiftCardAmount(amount);
+                                } else {
+                                  setGiftCardAmount(0);
+                                }
+                              }}
+                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-magic-orange focus:border-transparent w-32"
+                            />
+                          </div>
+                          {giftCardAmount > 0 && (
+                            <div className="bg-adventure-green/10 rounded-lg p-3 border-l-4 border-adventure-green">
+                              <p className="friendly-text text-charcoal">
+                                <FontAwesomeIcon icon={faCheckCircle} className="text-adventure-green mr-2" />
+                                Gift card of ${giftCardAmount} will be added to your order.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-
-                    {/* Pricing Breakdown */}
-                    <div className="mb-8 bg-soft-pink rounded-magical p-6 shadow-gentle relative z-10" style={{ pointerEvents: 'auto' }}>
-                      <div className="flex items-center gap-3 mb-4">
-                        <FontAwesomeIcon icon={faCalculator} className="text-2xl text-magic-orange" />
-                        <h3 className="friendly-lg font-fredoka text-inkwell-black font-semibold">
-                          💰 Pricing Breakdown
-                        </h3>
-                      </div>
                       
-                      <div className="space-y-3 friendly-text text-charcoal">
-                        <div className="flex justify-between items-center">
-                          <span>Base Package ({
-                            selectedPackage === 'basic' ? 'Basic Magic' :
-                            selectedPackage === 'premium' ? 'Premium Adventure' :
-                            selectedPackage === 'deluxe' ? 'Deluxe Kingdom' :
-                            'No package selected'
-                          }):</span>
-                          <span className="font-semibold">${
-                            selectedPackage === 'basic' ? '49.99' :
-                            selectedPackage === 'premium' ? '59.99' :
-                            selectedPackage === 'deluxe' ? '89.99' :
-                            '0.00'
-                          }</span>
+                      {/* Gift Card Redemption */}
+                      <div className="mt-6 bg-cream rounded-magical p-6 shadow-gentle">
+                        <div className="flex items-center gap-3 mb-4">
+                          <FontAwesomeIcon icon={faGift} className="text-2xl text-tale-purple" />
+                          <h3 className="friendly-lg font-fredoka text-inkwell-black font-semibold">
+                            🎁 Have a Gift Card?
+                          </h3>
                         </div>
                         
-                        {selectedPageCount !== '17' && (
-                          <div className="flex justify-between items-center">
-                            <span>Additional Pages ({selectedPageCount} pages):</span>
-                            <span className="font-semibold">+${
-                              selectedPageCount === '25' ? '15.00' :
-                              selectedPageCount === '30' ? '30.00' :
-                              '0.00'
-                            }</span>
+                        {!appliedGiftCard ? (
+                          <div>
+                            <p className="friendly-text text-charcoal mb-4">
+                              Enter your gift card code to apply it to this purchase.
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <div className="flex-grow">
+                                <Input
+                                  id="giftCardCode"
+                                  label="Gift Card Code"
+                                  placeholder="Enter your gift card code"
+                                  value={giftCardCode}
+                                  onChange={(e) => {
+                                    setGiftCardCode(e.target.value);
+                                    setGiftCardError(null);
+                                  }}
+                                />
+                              </div>
+                              <div className="self-end">
+                                <Button
+                                  onClick={async () => {
+                                    if (!giftCardCode.trim()) {
+                                      setGiftCardError('Please enter a gift card code');
+                                      return;
+                                    }
+                                    
+                                    setIsCheckingGiftCard(true);
+                                    setGiftCardError(null);
+                                    
+                                    try {
+                                      const response = await fetch('/api/gift-cards/check', {
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({ code: giftCardCode.trim() }),
+                                      });
+                                      
+                                      const data = await response.json();
+                                      
+                                      if (response.ok && data.success) {
+                                        setAppliedGiftCard(data.giftCard);
+                                      } else {
+                                        setGiftCardError(data.error || 'Invalid gift card code');
+                                      }
+                                    } catch (error) {
+                                      console.error('Error checking gift card:', error);
+                                      setGiftCardError('An error occurred while checking the gift card');
+                                    } finally {
+                                      setIsCheckingGiftCard(false);
+                                    }
+                                  }}
+                                  disabled={isCheckingGiftCard}
+                                  variant="secondary"
+                                >
+                                  {isCheckingGiftCard ? 'Checking...' : 'Apply'}
+                                </Button>
+                              </div>
+                            </div>
+                            {giftCardError && (
+                              <p className="text-reading-red friendly-text mt-2">{giftCardError}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="bg-adventure-green/10 rounded-magical p-4 mb-4 border-l-4 border-adventure-green">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="friendly-text font-medium text-inkwell-black">
+                                    <FontAwesomeIcon icon={faCheckCircle} className="text-adventure-green mr-2" />
+                                    Gift Card Applied!
+                                  </p>
+                                  <p className="friendly-text text-charcoal">
+                                    ${(appliedGiftCard.remainingAmount / 100).toFixed(2)} will be applied to your order.
+                                  </p>
+                                </div>
+                                <Button
+                                  onClick={() => {
+                                    setAppliedGiftCard(null);
+                                    setGiftCardCode('');
+                                  }}
+                                  variant="tertiary"
+                                  className="text-tale-purple hover:text-magic-orange"
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         )}
-                        
-                        <div className="border-t border-fog/30 pt-3 mt-3">
-                          <div className="flex justify-between items-center text-lg font-semibold">
-                            <span>Total:</span>
-                            <span className="text-adventure-green">${
-                              (selectedPackage === 'basic' ? 49.99 :
-                               selectedPackage === 'premium' ? 59.99 :
-                               selectedPackage === 'deluxe' ? 89.99 : 0) +
-                              (selectedPageCount === '25' ? 15 :
-                               selectedPageCount === '30' ? 30 : 0)
-                            }</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Confirmation Message */}
-                    <div className="mb-8 bg-lavender rounded-magical p-6 shadow-gentle relative z-10" style={{ pointerEvents: 'auto' }}>
-                      <div className="text-center">
-                        <FontAwesomeIcon icon={faMagicWandSparkles} className="text-3xl text-magic-orange mb-4" />
-                        <h4 className="friendly-lg font-fredoka text-inkwell-black font-semibold mb-3">
-                          🪄 Ready to Create Magic?
-                        </h4>
-                        <p className="friendly-text text-charcoal mb-4">
-                          Once you confirm your order, we'll begin crafting your personalized storybook adventure. 
-                          This magical process typically takes 1-2 business days.
-                        </p>
-                        <div className="bg-adventure-green/10 rounded-magical p-4">
-                          <p className="friendly-text text-charcoal">
-                            💳 Secure payment • 📦 Free shipping • ✨ 100% satisfaction guarantee
-                          </p>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -1148,7 +1518,7 @@ export default function CreateStorybook() {
                     )}
                   </div>
                   <div>
-                    {currentStep < 3 && (
+                    {currentStep < 4 && (
                       <Button 
                         type="button" 
                         onClick={handleNextStep} 
@@ -1159,25 +1529,15 @@ export default function CreateStorybook() {
                         Next Step →
                       </Button>
                     )}
-                    {currentStep === 3 && (
+                    {currentStep === 4 && (
                       <Button 
                         type="submit" 
                         disabled={isLoading || !validateStep()}
                         className="adventure-button clickable-button"
                         style={{ pointerEvents: 'auto', position: 'relative' }}
                       >
-                        📋 Review Order →
-                      </Button>
-                    )}
-                    {currentStep === 4 && (
-                      <Button 
-                        type="button" 
-                        onClick={handleSubmit}
-                        disabled={isLoading}
-                        className="adventure-button clickable-button"
-                        style={{ pointerEvents: 'auto', position: 'relative' }}
-                      >
-                        🪄 Confirm & Create My Magic Book
+                        <span className="hidden sm:inline">📋 Review Order →</span>
+                        <span className="sm:hidden">📋 Review →</span>
                       </Button>
                     )}
                   </div>

@@ -200,7 +200,8 @@ export default function AdminOrderDetailsPage() {
               </p>
               <Button href="/admin/orders" variant="secondary">
                 <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-                Back to Orders
+                <span className="sm:hidden">Back</span>
+                <span className="hidden sm:inline">Back to Orders</span>
               </Button>
             </Card>
           </div>
@@ -224,7 +225,8 @@ export default function AdminOrderDetailsPage() {
                 className="shadow-sm hover:shadow-md transition-shadow"
               >
                 <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-                Back to Orders
+                <span className="sm:hidden">Back</span>
+                <span className="hidden sm:inline">Back to Orders</span>
               </Button>
               
               <div className="flex items-center gap-3">
@@ -236,7 +238,8 @@ export default function AdminOrderDetailsPage() {
                   className="shadow-sm hover:shadow-md transition-shadow"
                 >
                   <FontAwesomeIcon icon={faEdit} className="mr-2" />
-                  Update Status
+                  <span className="sm:hidden">Update</span>
+                  <span className="hidden sm:inline">Update Status</span>
                 </Button>
               </div>
             </div>
@@ -543,7 +546,8 @@ export default function AdminOrderDetailsPage() {
                               className="shadow-sm hover:shadow-md transition-all"
                             >
                               <FontAwesomeIcon icon={faEnvelope} className="mr-2" />
-                              Send to Customer
+                              <span className="sm:hidden">Send</span>
+                              <span className="hidden sm:inline">Send to Customer</span>
                             </Button>
                           )}
                         </div>
@@ -641,7 +645,8 @@ export default function AdminOrderDetailsPage() {
                           className="shadow-sm hover:shadow-md transition-all"
                         >
                           <FontAwesomeIcon icon={faEnvelope} className="mr-2" />
-                          Send to Customer
+                          <span className="sm:hidden">Send</span>
+                          <span className="hidden sm:inline">Send to Customer</span>
                         </Button>
                       </div>
                     </div>
@@ -685,7 +690,9 @@ export default function AdminOrderDetailsPage() {
                         <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-orange-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                           <FontAwesomeIcon icon={faExclamationTriangle} className="text-2xl text-orange-500" />
                         </div>
-                        <h5 className="font-semibold text-inkwell-black mb-2">Shipping Address Required</h5>
+                        <h5 className="font-semibold text-inkwell-black mb-2">
+                          Shipping Address Required
+                        </h5>
                         <p className="text-charcoal/70 text-sm mb-4">
                           Contact customer to collect shipping address before processing order.
                         </p>
@@ -858,7 +865,8 @@ export default function AdminOrderDetailsPage() {
                       size="sm"
                     >
                       <FontAwesomeIcon icon={faShippingFast} className="mr-2" />
-                      Mark as Shipped
+                      <span className="sm:hidden">Ship</span>
+                      <span className="hidden sm:inline">Mark as Shipped</span>
                     </Button>
                   )}
                   
@@ -869,7 +877,8 @@ export default function AdminOrderDetailsPage() {
                     size="sm"
                   >
                     <FontAwesomeIcon icon={faEdit} className="mr-2" />
-                    Update Status
+                    <span className="sm:hidden">Update</span>
+                    <span className="hidden sm:inline">Update Status</span>
                   </Button>
                 </div>
               </Card>
@@ -974,7 +983,8 @@ export default function AdminOrderDetailsPage() {
                   onClick={handleStatusUpdate}
                   className="flex-1"
                 >
-                  Update Status
+                  <span className="sm:hidden">Update</span>
+                  <span className="hidden sm:inline">Update Status</span>
                 </Button>
                 <Button
                   variant="secondary"
@@ -1050,7 +1060,8 @@ export default function AdminOrderDetailsPage() {
                   className="flex-1"
                 >
                   <FontAwesomeIcon icon={faShippingFast} className="mr-2" />
-                  Ship & Notify Customer
+                  <span className="sm:hidden">Ship</span>
+                  <span className="hidden sm:inline">Ship & Notify Customer</span>
                 </Button>
                 <Button
                   variant="secondary"
