@@ -1048,6 +1048,16 @@ export default function CreateStorybook() {
                       <p className="friendly-text text-charcoal mb-4">
                         Describe the magical adventure you want to create. Our AI storytellers will use this to craft your personalized tale!
                       </p>
+                      <div className="bg-white/80 p-4 rounded-magical mb-4 border-l-3 border-adventure-green">
+                        <p className="friendly-text text-charcoal mb-2">
+                          <span className="font-semibold">✨ Important:</span> You can be as detailed or brief as you'd like when describing your story. 
+                        </p>
+                        <ul className="friendly-text text-charcoal space-y-2 list-disc pl-5">
+                          <li>We'll try to include as much from your story description as possible, but our AI may not include every detail.</li>
+                          <li>You'll have a chance to review your story before printing, with <span className="font-semibold">up to 2 revisions</span> included per book.</li>
+                          <li>The more specific your description, the more personalized your story will be!</li>
+                        </ul>
+                      </div>
                       {errors.storyDescription && (
                         <p className="text-reading-red friendly-text mb-3">{errors.storyDescription}</p>
                       )}

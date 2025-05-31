@@ -6,7 +6,8 @@ import {
   updateOrderStatus, 
   createBookOrder, 
   createCharacter,
-  initializeDatabase
+  initializeDatabase,
+  getGiftCardByCode
 } from '../../lib/database';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -134,13 +135,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return stringValue.length > 500 ? stringValue.substring(0, 500) : stringValue;
     };
 
+    // Validate gift card if one is being applied
+    let validatedGiftCardDiscount = 0;
+    let validatedGiftCardCode = null;
+    
+    if (appliedGiftCardCode && appliedGiftCardDiscount > 0) {
+      console.log(`Validating gift card: ${appliedGiftCardCode} for discount: $${(appliedGiftCardDiscount / 100).toFixed(2)}`);
+      
+      try {
+        // Get gift card details
+        const giftCard = await getGiftCardByCode(appliedGiftCardCode);
+        
+        if (!giftCard) {
+          console.error(`Gift card not found: ${appliedGiftCardCode}`);
+          return res.status(400).json({ error: 'Invalid gift card code' });
+        }
+        
+        // Check if the gift card is active
+        if (giftCard.status !== 'active') {
+          console.error(`Gift card is ${giftCard.status}: ${appliedGiftCardCode}`);
+          return res.status(400).json({ error: `Gift card is ${giftCard.status}` });
+        }
+        
+        // Check if the gift card has expired
+        if (giftCard.expires_at && new Date(giftCard.expires_at) < new Date()) {
+          console.error(`Gift card has expired: ${appliedGiftCardCode}`);
+          return res.status(400).json({ error: 'Gift card has expired' });
+        }
+        
+        // Check if the gift card has sufficient balance
+        if (giftCard.remaining_amount < appliedGiftCardDiscount) {
+          console.error(`Gift card has insufficient balance: ${appliedGiftCardCode}. Requested: $${(appliedGiftCardDiscount / 100).toFixed(2)}, Available: $${(giftCard.remaining_amount / 100).toFixed(2)}`);
+          return res.status(400).json({ 
+            error: `Gift card has insufficient balance. Available: $${(giftCard.remaining_amount / 100).toFixed(2)}` 
+          });
+        }
+        
+        // Gift card is valid, use it
+        validatedGiftCardDiscount = appliedGiftCardDiscount;
+        validatedGiftCardCode = appliedGiftCardCode;
+        console.log(`Gift card validated successfully: ${validatedGiftCardCode} with discount: $${(validatedGiftCardDiscount / 100).toFixed(2)}`);
+      } catch (error) {
+        console.error('Error validating gift card:', error);
+        return res.status(500).json({ error: 'Failed to validate gift card' });
+      }
+    }
+    
     // Calculate total price
     const additionalCopiesPrice = additionalCopies * 1999; // $19.99 per additional copy in cents
     const baseTotal = product.price + additionalCopiesPrice + (giftCardAmount * 100);
-    const finalTotal = Math.max(0, baseTotal - appliedGiftCardDiscount); // Ensure total is not negative
+    const finalTotal = Math.max(0, baseTotal - validatedGiftCardDiscount); // Ensure total is not negative
     
     // Calculate the effective product price after discount
-    const discountedProductPrice = Math.max(0, product.price - appliedGiftCardDiscount);
+    const discountedProductPrice = Math.max(0, product.price - validatedGiftCardDiscount);
 
     // Create line items array
     const lineItems: any[] = [
@@ -148,11 +195,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         price_data: {
           currency: 'usd',
           product_data: {
-            name: appliedGiftCardDiscount > 0 
+            name: validatedGiftCardDiscount > 0 
               ? `CustomHeroes - ${product.name} (Gift Card Applied)` 
               : `CustomHeroes - ${product.name}`,
-            description: appliedGiftCardDiscount > 0 
-              ? `${product.description} - $${(appliedGiftCardDiscount / 100).toFixed(2)} gift card discount applied`
+            description: validatedGiftCardDiscount > 0 
+              ? `${product.description} - $${(validatedGiftCardDiscount / 100).toFixed(2)} gift card discount applied`
               : product.description,
             metadata: {
               bookTitle: formatMetadataValue(validatedBookTitle),
@@ -220,8 +267,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         characterPhotoUrls: formatMetadataValue(validatedPhotoUrls.join(',')),
         additionalCopies: formatMetadataValue(additionalCopies),
         giftCardAmount: formatMetadataValue(giftCardAmount),
-        appliedGiftCardDiscount: formatMetadataValue(appliedGiftCardDiscount),
-        appliedGiftCardCode: formatMetadataValue(appliedGiftCardCode),
+        appliedGiftCardDiscount: formatMetadataValue(validatedGiftCardDiscount),
+        appliedGiftCardCode: formatMetadataValue(validatedGiftCardCode),
       },
       success_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create/confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create?step=4`,

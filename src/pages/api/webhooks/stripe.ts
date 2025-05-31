@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { stripe } from '../../../lib/stripe';
 import { updateOrderStatus, getOrderWithDetails, updateGiftCardBalance, getGiftCardByCode, recordGiftCardTransaction } from '../../../lib/database';
+import { sendOrderConfirmationEmail } from '../../../lib/email';
 import { buffer } from 'micro';
 
 // Disable body parsing for webhooks
@@ -101,8 +102,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           orderDetails: orderDetails[0], // First row contains the main order info
         });
         
+        // Send order confirmation email
+        try {
+          if (orderDetails && orderDetails.length > 0 && session.customer_email) {
+            const order = orderDetails[0];
+            const bookOrder = orderDetails[0].book_orders?.[0] || {};
+            const character = orderDetails[0].characters?.[0] || {};
+            
+            // Calculate estimated delivery date (2 weeks from now)
+            const estimatedDelivery = new Date();
+            estimatedDelivery.setDate(estimatedDelivery.getDate() + 14);
+            const formattedDeliveryDate = estimatedDelivery.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            
+            // Format order date
+            const orderDate = new Date(order.created_at || Date.now()).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            
+            // Send the email
+            await sendOrderConfirmationEmail({
+              customerEmail: session.customer_email,
+              customerName: order.customer_name || 'Valued Customer',
+              orderNumber: order.id.substring(0, 8).toUpperCase(), // Use first 8 chars of order ID
+              orderDate: orderDate,
+              productType: bookOrder.product_type || 'Custom Storybook',
+              totalAmount: session.amount_total || 0,
+              bookTitle: bookOrder.book_title || 'Your Custom Story',
+              characterName: character.character_name || 'Your Character',
+              estimatedDelivery: formattedDeliveryDate,
+              sessionId: session.id
+            });
+            
+            console.log('✅ Order confirmation email sent to', session.customer_email);
+          } else {
+            console.warn('⚠️ Could not send order confirmation email - missing order details or customer email');
+          }
+        } catch (emailError) {
+          console.error('❌ Error sending order confirmation email:', emailError);
+          // Don't fail the webhook for email errors
+        }
+        
         // Here you could trigger additional processes:
-        // - Send confirmation email
         // - Start book generation process
         // - Send to fulfillment system
         // - Update inventory
