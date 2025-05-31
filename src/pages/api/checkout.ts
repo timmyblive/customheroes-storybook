@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       characterAge,
       personalMessage,
       artStyle,
-      characterPhotoUrl,
+      characterPhotoUrls = [],
       additionalCopies = 0,
       giftCardAmount = 0,
       appliedGiftCardDiscount = 0,
@@ -60,7 +60,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`- giftCardAmount: ${giftCardAmount}`);
     console.log(`- appliedGiftCardDiscount: ${appliedGiftCardDiscount}`);
     console.log(`- appliedGiftCardCode: ${appliedGiftCardCode}`);
-    console.log(`- characterPhotoUrl length: ${characterPhotoUrl ? characterPhotoUrl.length : 'null'}`);
+    console.log(`- characterPhotoUrls: ${Array.isArray(characterPhotoUrls) ? characterPhotoUrls.length + ' photos' : 'not an array'}`);
+    console.log(`- characterPhotoUrls content:`, characterPhotoUrls);
     
     // Validate required fields
     const missingFields = [];
@@ -74,11 +75,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: errorMsg });
     }
 
-    // Validate and truncate characterPhotoUrl if it's too long
-    let validatedPhotoUrl = characterPhotoUrl;
-    if (characterPhotoUrl && characterPhotoUrl.length > 2000) {
-      console.warn(`Character photo URL too long (${characterPhotoUrl.length} chars), truncating to 2000 chars`);
-      validatedPhotoUrl = characterPhotoUrl.substring(0, 2000);
+    // Validate and process character photo URLs
+    let validatedPhotoUrls: string[] = [];
+    if (Array.isArray(characterPhotoUrls)) {
+      validatedPhotoUrls = characterPhotoUrls
+        .filter(url => url && typeof url === 'string')
+        .map(url => url.length > 2000 ? url.substring(0, 2000) : url);
+      console.log(`Processed ${validatedPhotoUrls.length} valid photo URLs`);
+    } else if (characterPhotoUrls && typeof characterPhotoUrls === 'string') {
+      // Handle backward compatibility with single URL
+      validatedPhotoUrls = [characterPhotoUrls.length > 2000 ? characterPhotoUrls.substring(0, 2000) : characterPhotoUrls];
+      console.log('Converted single photo URL to array for backward compatibility');
     }
 
     // Validate and truncate book title if it's too long
@@ -210,7 +217,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         characterAge: formatMetadataValue(characterAge),
         personalMessage: formatMetadataValue(personalMessage),
         artStyle: formatMetadataValue(artStyle),
-        characterPhotoUrl: formatMetadataValue(validatedPhotoUrl),
+        characterPhotoUrls: formatMetadataValue(validatedPhotoUrls.join(',')),
         additionalCopies: formatMetadataValue(additionalCopies),
         giftCardAmount: formatMetadataValue(giftCardAmount),
         appliedGiftCardDiscount: formatMetadataValue(appliedGiftCardDiscount),
@@ -249,7 +256,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bookOrder.id,
         characterName,
         characterAge || '',
-        validatedPhotoUrl || ''
+        validatedPhotoUrls.join(',') || ''
       );
       console.log('Character record created');
     }

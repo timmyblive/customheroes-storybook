@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { stripe } from '../../lib/stripe';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -9,6 +9,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { session_id } = req.query;
     console.log('Fetching order details for session:', session_id);
+
+    // Check environment variables
+    console.log('Environment check:', {
+      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+      stripeKeyLength: process.env.STRIPE_SECRET_KEY?.length || 0
+    });
 
     if (!session_id || typeof session_id !== 'string') {
       console.log('Invalid session_id:', session_id);

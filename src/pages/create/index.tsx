@@ -491,35 +491,51 @@ export default function CreateStorybook() {
 
     try {
       // Upload character images first
-      let characterPhotoUrl = '';
+      const characterPhotoUrls: string[] = [];
       
-      if (characterPhotos.length > 0 && characterPhotos[0].file) {
+      if (characterPhotos.length > 0) {
         setBookState(prev => ({ ...prev, progress: 0.3, status: 'processing' }));
-        console.log('Uploading character photo...');
+        console.log(`Uploading ${characterPhotos.length} character photos...`);
         
-        const formData = new FormData();
-        formData.append('image', characterPhotos[0].file);
-        
-        const uploadResponse = await fetch('/api/upload-image', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload character photo');
+        // Upload each character photo
+        for (let i = 0; i < characterPhotos.length; i++) {
+          const photo = characterPhotos[i];
+          
+          if (photo.file) {
+            console.log(`Uploading character photo ${i + 1}/${characterPhotos.length}...`);
+            
+            const formData = new FormData();
+            formData.append('image', photo.file);
+            
+            const uploadResponse = await fetch('/api/upload-image', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (!uploadResponse.ok) {
+              throw new Error(`Failed to upload character photo ${i + 1}`);
+            }
+            
+            const uploadResult = await uploadResponse.json();
+            characterPhotoUrls.push(uploadResult.url);
+            console.log(`Character photo ${i + 1} uploaded successfully:`, uploadResult.url);
+          } else if (photo.url) {
+            // Use existing URL if photo was loaded from localStorage
+            characterPhotoUrls.push(photo.url);
+            console.log(`Using existing character photo ${i + 1} URL from localStorage:`, photo.url);
+          }
+          
+          // Update progress for each photo uploaded
+          const photoProgress = 0.3 + (0.3 * (i + 1) / characterPhotos.length);
+          setBookState(prev => ({ ...prev, progress: photoProgress }));
         }
         
-        const uploadResult = await uploadResponse.json();
-        characterPhotoUrl = uploadResult.url;
-      } else if (characterPhotos.length > 0 && characterPhotos[0].url) {
-        // Use existing URL if photo was loaded from localStorage
-        characterPhotoUrl = characterPhotos[0].url;
-        console.log('Using existing character photo URL from localStorage');
+        console.log(`All ${characterPhotoUrls.length} character photos processed successfully`);
       }
       
       setBookState(prev => ({ ...prev, progress: 0.6, status: 'processing' }));
       console.log('Creating order...');
-
+      
       // Ensure we have a valid package type
       const packageType = selectedPackage || 'basic';
       console.log('Using package type:', packageType);
@@ -540,7 +556,7 @@ export default function CreateStorybook() {
         characterAge: characterPhotos[0]?.age || '',
         personalMessage: personalMessage,
         artStyle: selectedIllustrationStyle,
-        characterPhotoUrl: characterPhotoUrl,
+        characterPhotoUrls: characterPhotoUrls,
         additionalCopies: additionalCopies,
         giftCardAmount: giftCardAmount,
         appliedGiftCardDiscount: appliedGiftCard ? appliedGiftCard.remainingAmount : 0,
