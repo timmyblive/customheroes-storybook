@@ -1,6 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { stripe, PRODUCT_PRICES, ProductType } from '../../lib/stripe';
-import { createOrUpdateCustomer, createOrder, updateOrderStatus, createBookOrder, createCharacter } from '../../lib/database';
+import { 
+  createOrUpdateCustomer, 
+  createOrder, 
+  updateOrderStatus, 
+  createBookOrder, 
+  createCharacter,
+  initializeDatabase
+} from '../../lib/database';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -8,6 +15,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    console.log('Starting checkout process...');
+    
+    // Initialize database tables if they don't exist
+    console.log('Initializing database...');
+    await initializeDatabase();
+    console.log('Database initialized successfully');
+
     // Validate environment variables
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error('STRIPE_SECRET_KEY is not set');
