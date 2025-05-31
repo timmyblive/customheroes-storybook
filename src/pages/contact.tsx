@@ -4,7 +4,7 @@ import Input from '../components/ui/Input';
 import TextArea from '../components/ui/TextArea';
 import Button from '../components/ui/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope, faPhone, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -170,25 +170,6 @@ export default function ContactPage() {
                         <a href="mailto:support@customheroes.ai" className="hover:text-story-blue transition-colors">
                           support@customheroes.ai
                         </a>
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-center mb-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-story-blue/20 to-story-blue/10 rounded-lg flex items-center justify-center mr-3">
-                          <FontAwesomeIcon icon={faPhone} className="text-story-blue" />
-                        </div>
-                        <h3 className="font-montserrat font-semibold text-lg text-inkwell-black">
-                          Call Us
-                        </h3>
-                      </div>
-                      <p className="text-charcoal pl-13">
-                        <a href="tel:+18005551234" className="hover:text-story-blue transition-colors">
-                          (800) 555-1234
-                        </a>
-                      </p>
-                      <p className="text-sm text-charcoal/70 pl-13">
-                        Monday-Friday: 9am-5pm CST
                       </p>
                     </div>
                     
