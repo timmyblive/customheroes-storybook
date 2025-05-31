@@ -68,7 +68,7 @@ export default async function handler(
     if (process.env.RESEND_API_KEY) {
       try {
         await resend.emails.send({
-          from: 'CustomHeroes <orders@customheroes.com>',
+          from: 'CustomHeroes <orders@customheroes.ai>',
           to: [order.customerEmail],
           subject: `Your CustomHeroes book "${order.bookTitle}" has shipped! 📦`,
           html: `

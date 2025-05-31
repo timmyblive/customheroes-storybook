@@ -40,7 +40,7 @@ export async function sendGiftCardEmail(params: GiftCardEmailParams): Promise<vo
   
   try {
     await resend.emails.send({
-      from: 'gifts@customheroes.com',
+      from: 'gifts@customheroes.ai',
       to: recipientEmail,
       subject: `${senderName} sent you a CustomHeroes Gift Card!`,
       html: `

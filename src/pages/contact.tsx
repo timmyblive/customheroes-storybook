@@ -15,6 +15,7 @@ export default function ContactPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -24,13 +25,26 @@ export default function ContactPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError('');
     
-    // Simulate form submission
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
+
       setIsSubmitted(true);
       setFormData({
         name: '',
@@ -38,7 +52,11 @@ export default function ContactPage() {
         subject: '',
         message: ''
       });
-    }, 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -117,6 +135,9 @@ export default function ContactPage() {
                       rows={6}
                       className="mt-4"
                     />
+                    {error && (
+                      <p className="text-red-600 mb-4">{error}</p>
+                    )}
                     <div className="mt-8">
                       <Button
                         type="submit"
@@ -146,13 +167,8 @@ export default function ContactPage() {
                         </h3>
                       </div>
                       <p className="text-charcoal pl-13">
-                        <a href="mailto:hello@customheroes.com" className="hover:text-story-blue transition-colors">
-                          hello@customheroes.com
-                        </a>
-                      </p>
-                      <p className="text-charcoal pl-13">
-                        <a href="mailto:support@customheroes.com" className="hover:text-story-blue transition-colors">
-                          support@customheroes.com
+                        <a href="mailto:support@customheroes.ai" className="hover:text-story-blue transition-colors">
+                          support@customheroes.ai
                         </a>
                       </p>
                     </div>

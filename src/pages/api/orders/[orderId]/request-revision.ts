@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       await resend.emails.send({
         from: 'onboarding@resend.dev',
-        to: 'admin@customheroes.com', // Replace with actual admin email
+        to: 'admin@customheroes.ai', // Replace with actual admin email
         subject: `✏️ Revision Requested - ${order.book_title} (Order: ${orderId})`,
         html: `
           <!DOCTYPE html>

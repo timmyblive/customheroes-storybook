@@ -142,7 +142,7 @@ export default function PrivacyPolicyPage() {
                 If you have any questions about this Privacy Policy, please contact us:
               </p>
               <ul className="list-none pl-0 mt-4">
-                <li className="mb-2"><strong>Email:</strong> privacy@customheroes.com</li>
+                <li className="mb-2"><strong>Email:</strong> privacy@customheroes.ai</li>
               </ul>
             </div>
           </div>

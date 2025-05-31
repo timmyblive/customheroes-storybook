@@ -253,8 +253,8 @@ export default function ProofReviewPage() {
               <div className="text-center mt-8">
                 <p className="text-gray-600">
                   Need help? Contact our support team at{' '}
-                  <a href="mailto:support@customheroes.com" className="text-blue-600 hover:underline">
-                    support@customheroes.com
+                  <a href="mailto:support@customheroes.ai" className="text-blue-600 hover:underline">
+                    support@customheroes.ai
                   </a>
                 </p>
               </div>

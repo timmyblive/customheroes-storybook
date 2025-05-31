@@ -84,7 +84,7 @@ export async function getCurrentAdmin(req: NextApiRequest) {
   // Return basic admin info - expand this based on your needs
   return {
     id: 'admin',
-    email: 'admin@customheroes.com',
+    email: 'admin@customheroes.ai',
     role: 'admin'
   };
 }
