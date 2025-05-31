@@ -100,8 +100,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const product = PRODUCT_PRICES[productTypeKey];
     console.log('Selected product:', product);
 
+    console.log('About to create/update customer...');
     // Create or update customer in database
     const customer = await createOrUpdateCustomer(customerEmail, customerName);
+    console.log('Customer created/updated:', customer.id);
 
     // Helper function to safely format metadata values
     const formatMetadataValue = (value: any): string => {
@@ -176,6 +178,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    console.log('About to create Stripe checkout session...');
+    console.log('Line items:', JSON.stringify(lineItems, null, 2));
+    
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -200,13 +205,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create/confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create?step=4`,
     });
+    console.log('Stripe session created:', session.id);
 
+    console.log('About to create order record...');
     // Create order record in database
     const order = await createOrder(customer.id, session.id, finalTotal);
+    console.log('Order created:', order.id);
 
+    console.log('About to update order status...');
     // Update order status to completed since payment will be processed by Stripe
     await updateOrderStatus(session.id, 'completed');
+    console.log('Order status updated to completed');
 
+    console.log('About to create book order...');
     // Create book order record
     const bookOrder = await createBookOrder(
       order.id,
@@ -215,15 +226,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       artStyle || 'Cartoon',
       personalMessage || ''
     );
+    console.log('Book order created:', bookOrder.id);
 
     // Create character record if we have character data
     if (characterName) {
+      console.log('About to create character record...');
       await createCharacter(
         bookOrder.id,
         characterName,
         characterAge || '',
         validatedPhotoUrl || ''
       );
+      console.log('Character record created');
     }
 
     res.status(200).json({ 
@@ -233,10 +247,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   } catch (error) {
-    console.error('Checkout error:', error);
+    console.error('Checkout error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      type: typeof error,
+      error: error
+    });
+    
+    // Log environment variable status (without exposing values)
+    console.error('Environment check:', {
+      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasServiceUrl: !!process.env.NEXT_PUBLIC_AI_SERVICE_URL
+    });
+    
     res.status(500).json({ 
       error: 'Failed to create checkout session',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
     });
   }
 }
