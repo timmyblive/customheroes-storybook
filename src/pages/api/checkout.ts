@@ -7,7 +7,10 @@ import {
   createBookOrder, 
   createCharacter,
   initializeDatabase,
-  getGiftCardByCode
+  getGiftCardByCode,
+  getGiftCardAvailableBalance,
+  createGiftCardReservation,
+  cleanupExpiredReservations
 } from '../../lib/database';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -22,6 +25,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Initializing database...');
     await initializeDatabase();
     console.log('Database initialized successfully');
+
+    // Clean up expired reservations periodically
+    await cleanupExpiredReservations();
 
     // Validate environment variables
     if (!process.env.STRIPE_SECRET_KEY) {
@@ -163,11 +169,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(400).json({ error: 'Gift card has expired' });
         }
         
-        // Check if the gift card has sufficient balance
-        if (giftCard.remaining_amount < appliedGiftCardDiscount) {
-          console.error(`Gift card has insufficient balance: ${appliedGiftCardCode}. Requested: $${(appliedGiftCardDiscount / 100).toFixed(2)}, Available: $${(giftCard.remaining_amount / 100).toFixed(2)}`);
+        // Check if the gift card has sufficient available balance (accounting for active reservations)
+        const availableBalance = await getGiftCardAvailableBalance(giftCard.id);
+        if (availableBalance < appliedGiftCardDiscount) {
+          console.error(`Gift card has insufficient available balance: ${appliedGiftCardCode}. Requested: $${(appliedGiftCardDiscount / 100).toFixed(2)}, Available: $${(availableBalance / 100).toFixed(2)}`);
           return res.status(400).json({ 
-            error: `Gift card has insufficient balance. Available: $${(giftCard.remaining_amount / 100).toFixed(2)}` 
+            error: `Gift card has insufficient balance. Available: $${(availableBalance / 100).toFixed(2)}` 
           });
         }
         
@@ -186,8 +193,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const baseTotal = product.price + additionalCopiesPrice + (giftCardAmount * 100);
     const finalTotal = Math.max(0, baseTotal - validatedGiftCardDiscount); // Ensure total is not negative
     
-    // Calculate the effective product price after discount
-    const discountedProductPrice = Math.max(0, product.price - validatedGiftCardDiscount);
+    // Calculate how much discount to apply to each item proportionally
+    let remainingDiscount = validatedGiftCardDiscount;
+    
+    // Apply discount to product first
+    const productDiscount = Math.min(remainingDiscount, product.price);
+    const discountedProductPrice = product.price - productDiscount;
+    remainingDiscount -= productDiscount;
+    
+    // Apply remaining discount to additional copies
+    const additionalCopiesDiscount = Math.min(remainingDiscount, additionalCopiesPrice);
+    const discountedAdditionalCopiesPrice = Math.max(0, 1999 - Math.floor(additionalCopiesDiscount / Math.max(1, additionalCopies)));
+    remainingDiscount -= additionalCopiesDiscount;
+    
+    // Apply remaining discount to gift card purchase
+    const giftCardDiscount = Math.min(remainingDiscount, giftCardAmount * 100);
+    const discountedGiftCardPrice = Math.max(0, (giftCardAmount * 100) - giftCardDiscount);
 
     // Create line items array
     const lineItems: any[] = [
@@ -199,7 +220,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               ? `CustomHeroes - ${product.name} (Gift Card Applied)` 
               : `CustomHeroes - ${product.name}`,
             description: validatedGiftCardDiscount > 0 
-              ? `${product.description} - $${(validatedGiftCardDiscount / 100).toFixed(2)} gift card discount applied`
+              ? `${product.description} - $${(productDiscount / 100).toFixed(2)} gift card discount applied`
               : product.description,
             metadata: {
               bookTitle: formatMetadataValue(validatedBookTitle),
@@ -222,10 +243,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'Additional Copy',
-            description: `Additional copy of your personalized storybook`,
+            name: additionalCopiesDiscount > 0 ? 'Additional Copy (Gift Card Applied)' : 'Additional Copy',
+            description: additionalCopiesDiscount > 0 
+              ? `Additional copy of your personalized storybook - $${(additionalCopiesDiscount / 100).toFixed(2)} gift card discount applied`
+              : `Additional copy of your personalized storybook`,
           },
-          unit_amount: 1999, // $19.99 in cents
+          unit_amount: discountedAdditionalCopiesPrice,
         },
         quantity: additionalCopies,
       });
@@ -237,10 +260,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'Digital Gift Card',
-            description: `Digital gift card for CustomHeroes`,
+            name: giftCardDiscount > 0 ? 'Digital Gift Card (Gift Card Applied)' : 'Digital Gift Card',
+            description: giftCardDiscount > 0 
+              ? `Digital gift card for CustomHeroes - $${(giftCardDiscount / 100).toFixed(2)} gift card discount applied`
+              : `Digital gift card for CustomHeroes`,
           },
-          unit_amount: giftCardAmount * 100, // Convert to cents
+          unit_amount: discountedGiftCardPrice,
         },
         quantity: 1,
       });
@@ -274,6 +299,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       cancel_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create?step=4`,
     });
     console.log('Stripe session created:', session.id);
+
+    // Process gift card redemption immediately after successful session creation
+    if (validatedGiftCardCode && validatedGiftCardDiscount > 0) {
+      console.log(`🎁 Processing gift card redemption: ${validatedGiftCardCode} for $${(validatedGiftCardDiscount / 100).toFixed(2)}`);
+      
+      try {
+        // Get the gift card details to get the ID
+        const giftCard = await getGiftCardByCode(validatedGiftCardCode);
+        
+        if (giftCard) {
+          // Create a reservation for the gift card redemption
+          await createGiftCardReservation(giftCard.id, session.id, validatedGiftCardDiscount);
+          console.log('✅ Gift card reservation created');
+        } else {
+          console.error('❌ Gift card not found during reservation - this should not happen');
+        }
+      } catch (error) {
+        console.error('💥 Error creating gift card reservation:', error);
+        // Note: We don't fail the checkout here since the Stripe session was already created
+        // The customer has already been charged the discounted amount
+      }
+    }
 
     console.log('About to create order record...');
     // Create order record in database

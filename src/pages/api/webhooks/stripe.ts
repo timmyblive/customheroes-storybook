@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { stripe } from '../../../lib/stripe';
-import { updateOrderStatus, getOrderWithDetails, updateGiftCardBalance, getGiftCardByCode, recordGiftCardTransaction } from '../../../lib/database';
+import { updateOrderStatus, getOrderWithDetails, confirmGiftCardReservation } from '../../../lib/database';
 import { sendOrderConfirmationEmail } from '../../../lib/email';
 import { buffer } from 'micro';
 
@@ -57,36 +57,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           try {
             console.log(`💰 Processing gift card redemption: ${appliedGiftCardCode} for $${(parseInt(appliedGiftCardDiscount) / 100).toFixed(2)}`);
             
-            // Get the gift card details
-            const giftCard = await getGiftCardByCode(appliedGiftCardCode);
-            console.log('🎫 Gift card found:', giftCard ? `ID: ${giftCard.id}, Balance: $${(giftCard.remaining_amount / 100).toFixed(2)}` : 'NOT FOUND');
+            // Confirm the gift card reservation (this will update balance and create transaction)
+            const result = await confirmGiftCardReservation(session.id);
             
-            if (giftCard) {
-              // Calculate new remaining amount
-              const discountAmount = parseInt(appliedGiftCardDiscount);
-              const newRemainingAmount = Math.max(0, giftCard.remaining_amount - discountAmount);
-              
-              console.log(`💸 Updating balance: $${(giftCard.remaining_amount / 100).toFixed(2)} - $${(discountAmount / 100).toFixed(2)} = $${(newRemainingAmount / 100).toFixed(2)}`);
-              
-              // Update gift card balance
-              await updateGiftCardBalance(giftCard.id, newRemainingAmount);
-              console.log('✅ Gift card balance updated');
-              
-              // Record the transaction
-              await recordGiftCardTransaction(
-                giftCard.id,
-                discountAmount,
-                'redemption',
-                session.id
-              );
-              console.log('✅ Gift card transaction recorded');
-              
-              console.log(`🎉 Gift card ${appliedGiftCardCode} updated successfully. New balance: $${(newRemainingAmount / 100).toFixed(2)}`);
+            if (result) {
+              console.log(`✅ Gift card reservation confirmed for session ${session.id}`);
+              console.log(`🎉 Gift card ${appliedGiftCardCode} redeemed successfully. Amount: $${(result.reservation.reserved_amount / 100).toFixed(2)}`);
             } else {
-              console.error('❌ Gift card not found:', appliedGiftCardCode);
+              console.error('❌ No active reservation found for session:', session.id);
             }
           } catch (error) {
-            console.error('💥 Error processing gift card redemption:', error);
+            console.error('💥 Error confirming gift card reservation:', error);
             // Don't fail the webhook for gift card errors
           }
         } else {

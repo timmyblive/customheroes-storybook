@@ -7,7 +7,7 @@ export default function PricingPage() {
   const pricingPlans = [
     {
       name: "Basic Magic",
-      price: 49.99,
+      price: 59.99,
       description: "Your personalized storybook with beautiful illustrations",
       features: [
         "17-page personalized storybook",
@@ -22,7 +22,7 @@ export default function PricingPage() {
     },
     {
       name: "Premium Adventure",
-      price: 59.99,
+      price: 69.99,
       description: "Physical book + digital eBook for reading anywhere",
       features: [
         "17-page personalized storybook",
@@ -38,7 +38,7 @@ export default function PricingPage() {
     },
     {
       name: "Deluxe Kingdom",
-      price: 89.99,
+      price: 99.99,
       description: "Premium features with coloring pages and expedited shipping",
       features: [
         "17-page personalized storybook",

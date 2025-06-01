@@ -77,6 +77,16 @@ export interface GiftCardTransaction {
   created_at: Date;
 }
 
+export interface GiftCardReservation {
+  id: number;
+  gift_card_id: number;
+  session_id: string;
+  reserved_amount: number;
+  status: 'active' | 'confirmed' | 'expired' | 'cancelled';
+  expires_at: Date;
+  created_at: Date;
+}
+
 // Initialize database tables
 export async function initializeDatabase() {
   try {
@@ -130,6 +140,52 @@ export async function initializeDatabase() {
         name VARCHAR(255) NOT NULL,
         age VARCHAR(50),
         photo_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Create gift cards table
+    await sql`
+      CREATE TABLE IF NOT EXISTS gift_cards (
+        id SERIAL PRIMARY KEY,
+        code VARCHAR(50) UNIQUE NOT NULL,
+        initial_amount INTEGER NOT NULL,
+        remaining_amount INTEGER NOT NULL,
+        currency VARCHAR(3) DEFAULT 'USD',
+        status VARCHAR(20) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP,
+        recipient_email VARCHAR(255),
+        recipient_name VARCHAR(255),
+        sender_name VARCHAR(255),
+        sender_email VARCHAR(255),
+        message TEXT,
+        last_used_at TIMESTAMP,
+        stripe_payment_id VARCHAR(255)
+      )
+    `;
+
+    // Create gift card transactions table
+    await sql`
+      CREATE TABLE IF NOT EXISTS gift_card_transactions (
+        id SERIAL PRIMARY KEY,
+        gift_card_id INTEGER REFERENCES gift_cards(id),
+        order_id VARCHAR(255),
+        amount INTEGER NOT NULL,
+        transaction_type VARCHAR(20) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Create gift card reservations table
+    await sql`
+      CREATE TABLE IF NOT EXISTS gift_card_reservations (
+        id SERIAL PRIMARY KEY,
+        gift_card_id INTEGER REFERENCES gift_cards(id),
+        session_id VARCHAR(255) UNIQUE NOT NULL,
+        reserved_amount INTEGER NOT NULL,
+        status VARCHAR(20) DEFAULT 'active',
+        expires_at TIMESTAMP NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
@@ -614,6 +670,175 @@ export async function getAllGiftCards(): Promise<GiftCard[]> {
     return result as GiftCard[];
   } catch (error) {
     console.error('Error getting all gift cards:', error);
+    throw error;
+  }
+}
+
+// Gift Card Reservation Functions
+
+// Create a gift card reservation
+export async function createGiftCardReservation(
+  giftCardId: number,
+  sessionId: string,
+  reservedAmount: number,
+  expiresInHours: number = 24
+): Promise<GiftCardReservation> {
+  try {
+    const sql = createSql();
+    
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHours);
+    
+    const result = await sql`
+      INSERT INTO gift_card_reservations (
+        gift_card_id,
+        session_id,
+        reserved_amount,
+        expires_at
+      )
+      VALUES (${giftCardId}, ${sessionId}, ${reservedAmount}, ${expiresAt})
+      RETURNING *
+    `;
+    
+    console.log(`🔒 Gift card reservation created: ${reservedAmount/100} for session ${sessionId}`);
+    return result[0] as GiftCardReservation;
+  } catch (error) {
+    console.error('Error creating gift card reservation:', error);
+    throw error;
+  }
+}
+
+// Confirm a gift card reservation (convert to actual redemption)
+export async function confirmGiftCardReservation(
+  sessionId: string
+): Promise<{ reservation: GiftCardReservation; transaction: GiftCardTransaction } | null> {
+  try {
+    const sql = createSql();
+    
+    // Get the active reservation
+    const reservationResult = await sql`
+      SELECT * FROM gift_card_reservations 
+      WHERE session_id = ${sessionId} AND status = 'active'
+    `;
+    
+    if (reservationResult.length === 0) {
+      console.log(`No active reservation found for session ${sessionId}`);
+      return null;
+    }
+    
+    const reservation = reservationResult[0] as GiftCardReservation;
+    
+    // Update gift card balance
+    await sql`
+      UPDATE gift_cards 
+      SET remaining_amount = remaining_amount - ${reservation.reserved_amount},
+          last_used_at = CURRENT_TIMESTAMP
+      WHERE id = ${reservation.gift_card_id}
+    `;
+    
+    // Mark reservation as confirmed
+    await sql`
+      UPDATE gift_card_reservations 
+      SET status = 'confirmed'
+      WHERE id = ${reservation.id}
+    `;
+    
+    // Create transaction record
+    const transactionResult = await sql`
+      INSERT INTO gift_card_transactions (
+        gift_card_id,
+        order_id,
+        amount,
+        transaction_type
+      )
+      VALUES (${reservation.gift_card_id}, ${sessionId}, ${reservation.reserved_amount}, 'redemption')
+      RETURNING *
+    `;
+    
+    const transaction = transactionResult[0] as GiftCardTransaction;
+    
+    console.log(`✅ Gift card reservation confirmed for session ${sessionId}: $${(reservation.reserved_amount/100).toFixed(2)}`);
+    
+    return { reservation, transaction };
+  } catch (error) {
+    console.error('Error confirming gift card reservation:', error);
+    throw error;
+  }
+}
+
+// Get available balance (remaining_amount - active reservations)
+export async function getGiftCardAvailableBalance(giftCardId: number): Promise<number> {
+  try {
+    const sql = createSql();
+    
+    const result = await sql`
+      SELECT 
+        g.remaining_amount,
+        COALESCE(SUM(r.reserved_amount), 0) as total_reserved
+      FROM gift_cards g
+      LEFT JOIN gift_card_reservations r ON g.id = r.gift_card_id 
+        AND r.status = 'active' 
+        AND r.expires_at > CURRENT_TIMESTAMP
+      WHERE g.id = ${giftCardId}
+      GROUP BY g.id, g.remaining_amount
+    `;
+    
+    if (result.length === 0) {
+      return 0;
+    }
+    
+    const { remaining_amount, total_reserved } = result[0];
+    return remaining_amount - total_reserved;
+  } catch (error) {
+    console.error('Error getting gift card available balance:', error);
+    throw error;
+  }
+}
+
+// Clean up expired reservations
+export async function cleanupExpiredReservations(): Promise<number> {
+  try {
+    const sql = createSql();
+    
+    const result = await sql`
+      UPDATE gift_card_reservations 
+      SET status = 'expired'
+      WHERE status = 'active' AND expires_at < CURRENT_TIMESTAMP
+      RETURNING id
+    `;
+    
+    const expiredCount = result.length;
+    if (expiredCount > 0) {
+      console.log(`🧹 Cleaned up ${expiredCount} expired gift card reservations`);
+    }
+    
+    return expiredCount;
+  } catch (error) {
+    console.error('Error cleaning up expired reservations:', error);
+    throw error;
+  }
+}
+
+// Cancel a reservation (for cart abandonment)
+export async function cancelGiftCardReservation(sessionId: string): Promise<boolean> {
+  try {
+    const sql = createSql();
+    
+    const result = await sql`
+      UPDATE gift_card_reservations 
+      SET status = 'cancelled'
+      WHERE session_id = ${sessionId} AND status = 'active'
+      RETURNING id
+    `;
+    
+    const cancelled = result.length > 0;
+    if (cancelled) {
+      console.log(`❌ Gift card reservation cancelled for session ${sessionId}`);
+    }
+    
+    return cancelled;
+  } catch (error) {
+    console.error('Error cancelling gift card reservation:', error);
     throw error;
   }
 }

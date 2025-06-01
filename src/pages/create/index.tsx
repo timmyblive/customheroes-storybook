@@ -232,6 +232,22 @@ export default function CreateStorybook() {
       }
     };
   }, [statusInterval]);
+  
+  // Cancel gift card reservations when order details change
+  useEffect(() => {
+    // Cancel reservations when additional copies change (if gift card is applied)
+    if (appliedGiftCard && typeof appliedGiftCard.code === 'string') {
+      cancelGiftCardReservations(appliedGiftCard.code);
+    }
+  }, [additionalCopies, appliedGiftCard?.code as string]); // Only trigger when additionalCopies changes
+  
+  useEffect(() => {
+    // Cancel reservations when gift card amount changes (if gift card is applied)
+    if (appliedGiftCard && typeof appliedGiftCard.code === 'string') {
+      cancelGiftCardReservations(appliedGiftCard.code);
+    }
+  }, [giftCardAmount, appliedGiftCard?.code as string]); // Only trigger when giftCardAmount changes
+  
   const [errors, setErrors] = useState({
     customerName: '',
     customerEmail: '',
@@ -247,6 +263,29 @@ export default function CreateStorybook() {
     personalMessage: '', // Added for personal message validation
     bookTitle: '', // Added for book title validation
   });
+
+  // Helper function to cancel gift card reservations
+  const cancelGiftCardReservations = async (giftCardCode: string) => {
+    try {
+      console.log(`🔄 Cancelling reservations for gift card: ${giftCardCode}`);
+      const response = await fetch('/api/cancel-gift-card-reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: giftCardCode }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✅ Cancelled ${result.cancelledCount} reservations for gift card: ${giftCardCode}`);
+      } else {
+        console.warn(`⚠️ Failed to cancel reservations for gift card: ${giftCardCode}`);
+      }
+    } catch (error) {
+      console.error('❌ Error cancelling gift card reservations:', error);
+    }
+  };
 
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -467,8 +506,13 @@ export default function CreateStorybook() {
   };
 
   // Handle previous step
-  const handlePrevStep = () => {
+  const handlePrevStep = async () => {
     if (currentStep > 1) {
+      // If navigating back from step 4 (checkout) and gift card is applied, cancel reservations
+      if (currentStep === 4 && appliedGiftCard) {
+        await cancelGiftCardReservations(appliedGiftCard.code);
+      }
+      
       const prevStep = currentStep - 1;
       setCurrentStep(prevStep);
       
@@ -576,10 +620,53 @@ export default function CreateStorybook() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        const errorText = await response.text();
+        console.error('Checkout API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        
+        // Parse error message for user-friendly display
+        let userErrorMessage = 'Failed to process payment. Please try again.';
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error) {
+            // Handle specific gift card errors
+            if (errorData.error.includes('insufficient balance')) {
+              userErrorMessage = 'Gift card has insufficient balance. Please check your gift card or try a different payment method.';
+            } else if (errorData.error.includes('expired')) {
+              userErrorMessage = 'This gift card has expired. Please use a different gift card or payment method.';
+            } else if (errorData.error.includes('not found')) {
+              userErrorMessage = 'Gift card not found. Please check the code and try again.';
+            } else if (errorData.error.includes('already used')) {
+              userErrorMessage = 'This gift card has already been fully used. Please use a different gift card or payment method.';
+            } else {
+              userErrorMessage = errorData.error;
+            }
+          }
+        } catch (parseError) {
+          // If we can't parse the error, use the default message
+          console.warn('Could not parse error response:', parseError);
+        }
+        
+        setBookState(prev => ({ 
+          ...prev, 
+          status: 'failed', 
+          error: userErrorMessage 
+        }));
+        setIsLoading(false);
+        return;
       }
 
-      const { url } = await response.json();
+      const responseData = await response.json();
+      console.log('Checkout API response:', responseData);
+      const { url } = responseData;
+      
+      if (!url) {
+        console.error('No URL in response:', responseData);
+        throw new Error('No checkout URL received from server');
+      }
       
       setBookState(prev => ({ ...prev, progress: 1.0, status: 'processing' }));
       console.log('Redirecting to payment...');
@@ -654,7 +741,11 @@ export default function CreateStorybook() {
             
             {/* Content */}
             <div className="p-8 md:p-10">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={(e) => {
+                e.preventDefault(); // Prevent default form submission
+                // Only submit if we're on step 4 and user hasn't used the manual button
+                return false;
+              }}>
                 {/* Step 1: Customer Information */}
                 {currentStep === 1 && (
                   <div>
@@ -1308,7 +1399,7 @@ export default function CreateStorybook() {
                           <OptionCard 
                             icon={<FontAwesomeIcon icon={faBookOpen} className="text-4xl text-adventure-green" />} 
                             title="📚 Basic Magic"
-                            description="$49.99 - Your personalized storybook with beautiful illustrations"
+                            description="$59.99 - Your personalized storybook with beautiful illustrations"
                             selected={selectedPackage === 'basic'}
                             onClick={() => setSelectedPackage('basic')}
                           />
@@ -1317,7 +1408,7 @@ export default function CreateStorybook() {
                           <OptionCard 
                             icon={<FontAwesomeIcon icon={faTabletAlt} className="text-4xl text-tale-purple" />} 
                             title="✨ Premium Adventure"
-                            description="$59.99 - Physical book + digital eBook for reading anywhere"
+                            description="$69.99 - Physical book + digital eBook for reading anywhere"
                             selected={selectedPackage === 'premium'}
                             onClick={() => setSelectedPackage('premium')}
                           />
@@ -1326,7 +1417,7 @@ export default function CreateStorybook() {
                           <OptionCard 
                             icon={<FontAwesomeIcon icon={faDragon} className="text-4xl text-magic-orange" />} 
                             title="🏰 Deluxe Kingdom"
-                            description="$89.99 - Everything above + activity pack and coloring pages"
+                            description="$99.99 - Everything above + activity pack and coloring pages"
                             selected={selectedPackage === 'deluxe'}
                             onClick={() => setSelectedPackage('deluxe')}
                           />
@@ -1463,6 +1554,11 @@ export default function CreateStorybook() {
                                     setGiftCardError(null);
                                     
                                     try {
+                                      // Cancel any existing reservations for the current applied gift card
+                                      if (appliedGiftCard && appliedGiftCard.code) {
+                                        await cancelGiftCardReservations(appliedGiftCard.code);
+                                      }
+                                      
                                       const response = await fetch('/api/gift-cards/check', {
                                         method: 'POST',
                                         headers: {
@@ -1528,6 +1624,36 @@ export default function CreateStorybook() {
                   </div>
                 )}
                 
+                {/* Error Display */}
+                {bookState.status === 'failed' && bookState.error && (
+                  <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-red-800">
+                          Payment Error
+                        </h3>
+                        <div className="mt-2 text-sm text-red-700">
+                          <p>{bookState.error}</p>
+                        </div>
+                        <div className="mt-4">
+                          <button
+                            type="button"
+                            onClick={() => setBookState(prev => ({ ...prev, status: 'idle', error: null }))}
+                            className="text-sm font-medium text-red-800 hover:text-red-600 underline"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Navigation Buttons */}
                 <div className={`mt-8 pt-6 border-t border-fog/30 flex ${currentStep === 1 ? 'justify-end' : 'justify-between'} items-center`}>
                   <div>
@@ -1558,13 +1684,15 @@ export default function CreateStorybook() {
                     )}
                     {currentStep === 4 && (
                       <Button 
-                        type="submit" 
+                        onClick={() => {
+                          handleSubmit();
+                        }}
                         disabled={isLoading || !validateStep()}
                         className="adventure-button clickable-button"
                         style={{ pointerEvents: 'auto', position: 'relative' }}
                       >
-                        <span className="hidden sm:inline">📋 Review Order →</span>
-                        <span className="sm:hidden">📋 Review →</span>
+                        <span className="hidden sm:inline">💳 Proceed to Payment →</span>
+                        <span className="sm:hidden">💳 Pay →</span>
                       </Button>
                     )}
                   </div>

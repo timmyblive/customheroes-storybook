@@ -16,7 +16,7 @@ export const getStripe = () => {
 export const PRODUCT_PRICES = {
   basic: {
     name: 'Basic Magic',
-    price: 4999, // $49.99 in cents
+    price: 5999, // $59.99 in cents
     description: '20-page personalized storybook',
     features: [
       '20 pages of magical adventure',
@@ -27,7 +27,7 @@ export const PRODUCT_PRICES = {
   },
   premium: {
     name: 'Premium Adventure',
-    price: 5999, // $59.99 in cents
+    price: 6999, // $69.99 in cents
     description: '25-page premium storybook with extras',
     features: [
       '25 pages of epic adventure',
@@ -39,7 +39,7 @@ export const PRODUCT_PRICES = {
   },
   deluxe: {
     name: 'Deluxe Kingdom',
-    price: 8999, // $89.99 in cents
+    price: 9999, // $99.99 in cents
     description: '30-page deluxe storybook with special features',
     features: [
       '30 pages of royal adventure',
