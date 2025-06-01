@@ -60,6 +60,54 @@ export default function OrderDetailsPage() {
   const [verificationError, setVerificationError] = useState('');
 
   useEffect(() => {
+    const fetchOrderDetails = async () => {
+      try {
+        setLoading(true);
+        
+        // In a real implementation, you would fetch from your API
+        // For now, we'll use mock data
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const mockOrder: OrderData = {
+          id: id as string,
+          sessionId: "cs_test_123",
+          customerEmail: "customer@example.com",
+          customerName: "John Doe",
+          productType: "premium",
+          bookTitle: "Adventure Story",
+          characterName: "Hero",
+          total: 5999,
+          status: "completed",
+          createdAt: new Date().toISOString(),
+          date: new Date().toLocaleDateString(),
+          estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+          book: {
+            title: "Adventure Story",
+            coverImage: "/images/Hero.png",
+            pages: 25
+          },
+          shippingAddress: {
+            name: 'John Doe',
+            line1: '123 Main Street',
+            line2: 'Apt 4B',
+            city: 'San Francisco',
+            state: 'CA',
+            postalCode: '94102',
+            country: 'US'
+          },
+          shippingMethod: 'Standard Shipping (5-7 business days)',
+          trackingNumber: 'TRK123456789'
+        };
+
+        setOrder(mockOrder);
+      } catch (err) {
+        console.error('Error fetching order details:', err);
+        setError('Failed to load order details. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (id) {
       fetchOrderDetails();
     }
@@ -80,54 +128,6 @@ export default function OrderDetailsPage() {
       }
     }
   }, [id, router.query.email, order]);
-
-  const fetchOrderDetails = async () => {
-    try {
-      setLoading(true);
-      
-      // In a real implementation, you would fetch from your API
-      // For now, we'll use mock data
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockOrder: OrderData = {
-        id: id as string,
-        sessionId: "cs_test_123",
-        customerEmail: "customer@example.com",
-        customerName: "John Doe",
-        productType: "premium",
-        bookTitle: "Adventure Story",
-        characterName: "Hero",
-        total: 5999,
-        status: "completed",
-        createdAt: new Date().toISOString(),
-        date: new Date().toLocaleDateString(),
-        estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        book: {
-          title: "Adventure Story",
-          coverImage: "/images/Hero.png",
-          pages: 25
-        },
-        shippingAddress: {
-          name: 'John Doe',
-          line1: '123 Main Street',
-          line2: 'Apt 4B',
-          city: 'San Francisco',
-          state: 'CA',
-          postalCode: '94102',
-          country: 'US'
-        },
-        shippingMethod: 'Standard Shipping (5-7 business days)',
-        trackingNumber: 'TRK123456789'
-      };
-
-      setOrder(mockOrder);
-    } catch (err) {
-      console.error('Error fetching order details:', err);
-      setError('Failed to load order details. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const verifyEmail = (e: React.FormEvent) => {
     e.preventDefault();

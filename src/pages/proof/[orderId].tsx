@@ -22,87 +22,82 @@ export default function ProofReviewPage() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    const fetchOrderDetails = async () => {
+      try {
+        const response = await fetch(`/api/orders/${orderId}/details`);
+        if (response.ok) {
+          const orderData = await response.json();
+          setOrder(orderData);
+        } else {
+          setMessage('Order not found. Please check your link.');
+        }
+      } catch (error) {
+        console.error('Error fetching order details:', error);
+        setMessage('Error loading order details.');
+      }
+    };
+
     if (orderId) {
       fetchOrderDetails();
     }
   }, [orderId]);
 
   useEffect(() => {
+    const handleApproval = async () => {
+      try {
+        const response = await fetch(`/api/orders/${orderId}/approve`, {
+          method: 'POST',
+        });
+        if (response.ok) {
+          setMessage('Thank you! Your approval has been recorded. Production will begin shortly.');
+        } else {
+          setMessage('Error processing approval. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error approving order:', error);
+        setMessage('Error processing approval. Please try again.');
+      }
+    };
+
     if (action === 'approve') {
       handleApproval();
     } else if (action === 'revise') {
       setShowRevisionForm(true);
     }
-  }, [action]);
+  }, [action, orderId]);
 
-  const fetchOrderDetails = async () => {
-    try {
-      const response = await fetch(`/api/orders/${orderId}/details`);
-      if (response.ok) {
-        const orderData = await response.json();
-        setOrder(orderData);
-      } else {
-        setMessage('Order not found. Please check your link.');
-      }
-    } catch (error) {
-      console.error('Error fetching order:', error);
-      setMessage('Error loading order details. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const handleRevisionRequest = async () => {
+      if (!orderId || !revisionNotes.trim()) return;
+      
+      setSubmitting(true);
+      try {
+        const response = await fetch(`/api/orders/${orderId}/request-revision`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ notes: revisionNotes }),
+        });
 
-  const handleApproval = async () => {
-    if (!orderId) return;
-    
-    setSubmitting(true);
-    try {
-      const response = await fetch(`/api/orders/${orderId}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        setMessage('✅ Thank you! Your book has been approved and will be sent to print.');
-      } else {
-        setMessage('Error approving book. Please try again or contact support.');
-      }
-    } catch (error) {
-      console.error('Error approving book:', error);
-      setMessage('Error approving book. Please try again or contact support.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleRevisionRequest = async () => {
-    if (!orderId || !revisionNotes.trim()) return;
-    
-    setSubmitting(true);
-    try {
-      const response = await fetch(`/api/orders/${orderId}/request-revision`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ notes: revisionNotes }),
-      });
-
-      if (response.ok) {
-        setMessage('✅ Thank you! Your revision request has been submitted. We\'ll make the changes and send you a new proof.');
-        setShowRevisionForm(false);
-      } else {
+        if (response.ok) {
+          setMessage('Thank you! Your revision request has been submitted. We\'ll make the changes and send you a new proof.');
+          setShowRevisionForm(false);
+        } else {
+          setMessage('Error submitting revision request. Please try again or contact support.');
+        }
+      } catch (error) {
+        console.error('Error submitting revision:', error);
         setMessage('Error submitting revision request. Please try again or contact support.');
+      } finally {
+        setSubmitting(false);
       }
-    } catch (error) {
-      console.error('Error submitting revision:', error);
-      setMessage('Error submitting revision request. Please try again or contact support.');
-    } finally {
-      setSubmitting(false);
+    };
+
+    if (showRevisionForm) {
+      handleRevisionRequest();
     }
-  };
+  }, [orderId, revisionNotes, showRevisionForm]);
 
   if (loading) {
     return (
@@ -203,7 +198,26 @@ export default function ProofReviewPage() {
                   {!showRevisionForm ? (
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                       <button
-                        onClick={handleApproval}
+                        onClick={() => {
+                          setSubmitting(true);
+                          fetch(`/api/orders/${orderId}/approve`, {
+                            method: 'POST',
+                          })
+                            .then((response) => {
+                              if (response.ok) {
+                                setMessage('Thank you! Your approval has been recorded. Production will begin shortly.');
+                              } else {
+                                setMessage('Error processing approval. Please try again.');
+                              }
+                            })
+                            .catch((error) => {
+                              console.error('Error approving order:', error);
+                              setMessage('Error processing approval. Please try again.');
+                            })
+                            .finally(() => {
+                              setSubmitting(false);
+                            });
+                        }}
                         disabled={submitting}
                         className="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg disabled:opacity-50"
                       >
@@ -231,7 +245,31 @@ export default function ProofReviewPage() {
                       />
                       <div className="flex gap-4 mt-4">
                         <button
-                          onClick={handleRevisionRequest}
+                          onClick={() => {
+                            setSubmitting(true);
+                            fetch(`/api/orders/${orderId}/request-revision`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({ notes: revisionNotes }),
+                            })
+                              .then((response) => {
+                                if (response.ok) {
+                                  setMessage('Thank you! Your revision request has been submitted. We\'ll make the changes and send you a new proof.');
+                                  setShowRevisionForm(false);
+                                } else {
+                                  setMessage('Error submitting revision request. Please try again or contact support.');
+                                }
+                              })
+                              .catch((error) => {
+                                console.error('Error submitting revision:', error);
+                                setMessage('Error submitting revision request. Please try again or contact support.');
+                              })
+                              .finally(() => {
+                                setSubmitting(false);
+                              });
+                          }}
                           disabled={submitting || !revisionNotes.trim()}
                           className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg disabled:opacity-50"
                         >

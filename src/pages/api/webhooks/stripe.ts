@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { stripe } from '../../../lib/stripe';
-import { updateOrderStatus, getOrderWithDetails, confirmGiftCardReservation } from '../../../lib/database';
+import Stripe from 'stripe';
+import { updateOrderStatus, getOrderWithDetails, confirmGiftCardReservation, createOrUpdateCustomer } from '../../../lib/database';
 import { sendOrderConfirmationEmail } from '../../../lib/email';
 import { buffer } from 'micro';
 
@@ -43,6 +44,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Update order status to completed
         await updateOrderStatus(session.id, 'completed');
         console.log('✅ Order status updated to completed');
+        
+        // Capture shipping information from Stripe session
+        // Type assertion to access Stripe Checkout Session properties
+        const checkoutSession = session as Stripe.Checkout.Session & {
+          shipping?: {
+            address?: {
+              line1?: string;
+              line2?: string;
+              city?: string;
+              state?: string;
+              postal_code?: string;
+              country?: string;
+            };
+            name?: string;
+          };
+          customer_details?: {
+            email?: string;
+            name?: string;
+            phone?: string;
+          };
+        };
+        
+        if (checkoutSession.shipping) {
+          console.log('📦 Shipping information received from Stripe');
+          try {
+            const customerEmail = checkoutSession.customer_details?.email;
+            const customerName = checkoutSession.customer_details?.name;
+            
+            if (customerEmail && customerName) {
+              // Extract shipping details from Stripe session
+              const addressLine1 = checkoutSession.shipping.address?.line1;
+              const addressLine2 = checkoutSession.shipping.address?.line2;
+              const city = checkoutSession.shipping.address?.city;
+              const state = checkoutSession.shipping.address?.state;
+              const postalCode = checkoutSession.shipping.address?.postal_code;
+              const country = checkoutSession.shipping.address?.country;
+              const phone = checkoutSession.customer_details?.phone;
+              
+              // Update customer with shipping information from Stripe
+              await createOrUpdateCustomer(
+                customerEmail,
+                customerName,
+                phone || undefined,
+                addressLine1 || undefined,
+                addressLine2 || undefined,
+                city || undefined,
+                state || undefined,
+                postalCode || undefined,
+                country || undefined
+              );
+              console.log('✅ Customer updated with shipping information from Stripe');
+            } else {
+              console.warn('⚠️ Missing customer email or name in session');
+            }
+          } catch (error) {
+            console.error('❌ Error updating customer with shipping information:', error);
+            // Don't fail the webhook for customer update errors
+          }
+        } else {
+          console.log('ℹ️ No shipping information in Stripe session');
+        }
         
         // Process gift card redemption if applicable
         const appliedGiftCardCode = session.metadata?.appliedGiftCardCode;

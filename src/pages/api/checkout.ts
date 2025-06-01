@@ -47,6 +47,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       productType, 
       customerEmail, 
       customerName,
+      customerPhone,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      country,
+      deliveryPreferences,
       bookTitle,
       characterName,
       characterAge,
@@ -63,6 +71,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`- productType: ${productType} ${typeof productType}`);
     console.log(`- customerEmail: ${customerEmail}`);
     console.log(`- customerName: ${customerName}`);
+    console.log(`- customerPhone: ${customerPhone}`);
+    console.log(`- addressLine1: ${addressLine1}`);
+    console.log(`- city: ${city}, state: ${state}, postalCode: ${postalCode}`);
+    console.log(`- country: ${country}`);
+    console.log(`- deliveryPreferences: ${deliveryPreferences}`);
     console.log(`- additionalCopies: ${additionalCopies}`);
     console.log(`- giftCardAmount: ${giftCardAmount}`);
     console.log(`- appliedGiftCardDiscount: ${appliedGiftCardDiscount}`);
@@ -75,6 +88,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!productType) missingFields.push('productType');
     if (!customerEmail) missingFields.push('customerEmail');
     if (!customerName) missingFields.push('customerName');
+    
+    // Note: Shipping information is now collected by Stripe
     
     if (missingFields.length > 0) {
       const errorMsg = `Missing required fields: ${missingFields.join(', ')}`;
@@ -129,8 +144,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Selected product:', product);
 
     console.log('About to create/update customer...');
-    // Create or update customer in database
-    const customer = await createOrUpdateCustomer(customerEmail, customerName);
+    // Create or update customer with basic info only
+    // We'll get shipping details from Stripe after checkout
+    console.log('Creating/updating customer with basic info...');
+    const customer = await createOrUpdateCustomer(
+      customerEmail, 
+      customerName,
+      undefined, // Phone will come from Stripe
+      undefined, // Address will come from Stripe
+      undefined, // Address line 2 will come from Stripe
+      undefined, // City will come from Stripe
+      undefined, // State will come from Stripe
+      undefined, // Postal code will come from Stripe
+      undefined, // Country will come from Stripe
+      undefined  // Delivery preferences will come from Stripe
+    );
     console.log('Customer created/updated:', customer.id);
 
     // Helper function to safely format metadata values
@@ -280,6 +308,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       mode: 'payment',
       customer_email: customerEmail,
       locale: 'en',
+      shipping_address_collection: {
+        allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'ES', 'IT', 'JP', 'SG', 'NZ'], // Add countries you ship to
+      },
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: 'fixed_amount',
+            fixed_amount: {
+              amount: 0, // Free shipping (in cents)
+              currency: 'usd',
+            },
+            display_name: 'Standard Shipping',
+            delivery_estimate: {
+              minimum: {
+                unit: 'business_day',
+                value: 5,
+              },
+              maximum: {
+                unit: 'business_day',
+                value: 10,
+              },
+            },
+          },
+        },
+      ],
       line_items: lineItems,
       metadata: {
         productType: formatMetadataValue(productTypeKey),
@@ -328,9 +381,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Order created:', order.id);
 
     console.log('About to update order status...');
-    // Update order status to completed since payment will be processed by Stripe
-    await updateOrderStatus(session.id, 'completed');
-    console.log('Order status updated to completed');
+    // Update order status to pending until payment is confirmed via webhook
+    await updateOrderStatus(session.id, 'pending');
+    console.log('Order status updated to pending');
 
     console.log('About to create book order...');
     // Create book order record

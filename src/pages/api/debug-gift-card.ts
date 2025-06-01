@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       giftCard: {
         id: giftCard.id,
         code: giftCard.code,
-        originalAmount: giftCard.amount || giftCard.remaining_amount,
+        originalAmount: giftCard.initial_amount,
         remainingAmount: giftCard.remaining_amount,
         availableBalance: availableBalance,
         status: giftCard.status,

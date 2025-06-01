@@ -13,7 +13,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     const sql = neon(process.env.DATABASE_URL);
     
-    // Get all orders with customer and book details
+    // Check if we should only return paid orders
+    const showOnlyPaid = req.query.paid !== 'false';
+    
+    // Build query based on filter
     const orders = await sql`
       SELECT 
         o.*,
@@ -30,6 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       JOIN customers c ON o.customer_id = c.id
       LEFT JOIN book_orders bo ON bo.order_id = o.id
       LEFT JOIN characters ch ON ch.book_order_id = bo.id
+      ${showOnlyPaid ? sql`WHERE o.status = 'completed'` : sql``}
       ORDER BY o.created_at DESC
     `;
 

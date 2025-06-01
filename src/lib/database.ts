@@ -14,6 +14,14 @@ export interface Customer {
   id: number;
   email: string;
   name: string;
+  phone?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  delivery_preferences?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -98,6 +106,14 @@ export async function initializeDatabase() {
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         name VARCHAR(255) NOT NULL,
+        phone VARCHAR(50),
+        address_line1 VARCHAR(255),
+        address_line2 VARCHAR(255),
+        city VARCHAR(100),
+        state VARCHAR(100),
+        postal_code VARCHAR(20),
+        country VARCHAR(100),
+        delivery_preferences TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -199,7 +215,18 @@ export async function initializeDatabase() {
 }
 
 // Customer operations
-export async function createOrUpdateCustomer(email: string, name: string): Promise<Customer> {
+export async function createOrUpdateCustomer(
+  email: string, 
+  name: string, 
+  phone?: string,
+  address_line1?: string,
+  address_line2?: string,
+  city?: string,
+  state?: string,
+  postal_code?: string,
+  country?: string,
+  delivery_preferences?: string
+): Promise<Customer> {
   try {
     const sql = createSql();
     
@@ -222,7 +249,17 @@ export async function createOrUpdateCustomer(email: string, name: string): Promi
       // Update existing customer
       const result = await sql`
         UPDATE customers 
-        SET name = ${name}, updated_at = CURRENT_TIMESTAMP 
+        SET 
+          name = ${name}, 
+          phone = ${phone || null},
+          address_line1 = ${address_line1 || null},
+          address_line2 = ${address_line2 || null},
+          city = ${city || null},
+          state = ${state || null},
+          postal_code = ${postal_code || null},
+          country = ${country || null},
+          delivery_preferences = ${delivery_preferences || null},
+          updated_at = CURRENT_TIMESTAMP 
         WHERE email = ${email}
         RETURNING *
       `;
@@ -230,8 +267,30 @@ export async function createOrUpdateCustomer(email: string, name: string): Promi
     } else {
       // Create new customer
       const result = await sql`
-        INSERT INTO customers (email, name)
-        VALUES (${email}, ${name})
+        INSERT INTO customers (
+          email, 
+          name, 
+          phone, 
+          address_line1, 
+          address_line2, 
+          city, 
+          state, 
+          postal_code, 
+          country, 
+          delivery_preferences
+        )
+        VALUES (
+          ${email}, 
+          ${name}, 
+          ${phone || null}, 
+          ${address_line1 || null}, 
+          ${address_line2 || null}, 
+          ${city || null}, 
+          ${state || null}, 
+          ${postal_code || null}, 
+          ${country || null}, 
+          ${delivery_preferences || null}
+        )
         RETURNING *
       `;
       return result[0] as Customer;

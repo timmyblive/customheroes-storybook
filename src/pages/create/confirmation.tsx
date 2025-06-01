@@ -40,8 +40,6 @@ interface OrderData {
 }
 
 export default function OrderConfirmation() {
-  console.log('OrderConfirmation component rendered');
-
   const router = useRouter();
   const { session_id } = router.query;
   const [order, setOrder] = useState<OrderData | null>(null);
@@ -130,7 +128,6 @@ export default function OrderConfirmation() {
   // Confetti effect on page load
   useEffect(() => {
     // This would be implemented with a confetti library in a real application
-    console.log('Confetti effect would play here');
   }, []);
 
   if (loading) {

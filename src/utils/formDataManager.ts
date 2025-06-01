@@ -12,7 +12,7 @@ const STORAGE_KEY = 'customHeroes_formData';
 /**
  * Save form data to localStorage
  */
-export const saveFormData = (key: string, data: any): void => {
+export const saveFormData = (key: string, data: unknown): void => {
   try {
     // Get existing data
     const existingData = getAllFormData();
@@ -34,7 +34,7 @@ export const saveFormData = (key: string, data: any): void => {
 /**
  * Get all form data from localStorage
  */
-export const getAllFormData = (): Record<string, any> => {
+export const getAllFormData = (): Record<string, unknown> => {
   try {
     const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
@@ -50,7 +50,7 @@ export const getAllFormData = (): Record<string, any> => {
 /**
  * Get specific form data by key
  */
-export const getFormData = (key: string): any => {
+export const getFormData = (key: string): unknown => {
   const allData = getAllFormData();
   return allData[key];
 };
@@ -92,7 +92,8 @@ export const saveCurrentStep = (step: number): void => {
  * Get the last saved step in the book creation process
  */
 export const getCurrentStep = (): number => {
-  return getFormData('currentStep') || 1;
+  const step = getFormData('currentStep');
+  return typeof step === 'number' ? step : 1;
 };
 
 /**

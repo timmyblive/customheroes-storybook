@@ -21,6 +21,7 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<OrderStatus | 'all'>('all');
+  const [showOnlyPaid, setShowOnlyPaid] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showShippingModal, setShowShippingModal] = useState(false);
@@ -32,12 +33,17 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     loadOrders();
-  }, []);
+  }, [showOnlyPaid]);
 
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/orders');
+      // Add query parameter to filter by payment status
+      const url = showOnlyPaid 
+        ? '/api/admin/orders?paid=true' 
+        : '/api/admin/orders?paid=false';
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error('Failed to load orders');
@@ -66,8 +72,8 @@ export default function AdminOrdersPage() {
 
   const getStatusBadge = (status: OrderStatus) => {
     const statusConfig: Record<OrderStatus, { color: string; text: string }> = {
-      pending: { color: 'bg-gray-100 text-gray-800', text: 'Pending' },
-      completed: { color: 'bg-blue-100 text-blue-800', text: 'Payment Complete' },
+      pending: { color: 'bg-red-100 text-red-800', text: 'Payment Pending' },
+      completed: { color: 'bg-green-100 text-green-800', text: 'Payment Complete' },
       proof_generation: { color: 'bg-yellow-100 text-yellow-800', text: 'Generating Proof' },
       proof_sent: { color: 'bg-purple-100 text-purple-800', text: 'Proof Sent' },
       proof_approved: { color: 'bg-green-100 text-green-800', text: 'Proof Approved' },
@@ -185,14 +191,14 @@ export default function AdminOrdersPage() {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center space-x-2">
                   <FontAwesomeIcon icon={faFilter} className="text-gray-500" />
                   <select
+                    className="form-select rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value as OrderStatus | 'all')}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-story-blue focus:border-story-blue"
                   >
-                    <option value="all">All Orders</option>
+                    <option value="all">All Statuses</option>
                     <option value="pending">Pending</option>
                     <option value="completed">Payment Complete</option>
                     <option value="proof_generation">Generating Proof</option>
@@ -204,6 +210,21 @@ export default function AdminOrdersPage() {
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                </div>
+                
+                <div className="flex items-center space-x-2 ml-4">
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer"
+                      checked={showOnlyPaid}
+                      onChange={() => setShowOnlyPaid(!showOnlyPaid)}
+                    />
+                    <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                      {showOnlyPaid ? 'Showing Paid Orders Only' : 'Showing All Orders'}
+                    </span>
+                  </label>
                 </div>
               </div>
             </Card>

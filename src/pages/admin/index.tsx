@@ -197,7 +197,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-slate-600">Total Revenue</p>
+                  <p className="text-sm font-medium text-slate-600">Total Revenue (Paid Orders)</p>
                   <p className="text-2xl font-bold text-slate-900">
                     {isLoading ? '...' : formatCurrency(stats.totalRevenue)}
                   </p>
