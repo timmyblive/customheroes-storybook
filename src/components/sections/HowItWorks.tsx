@@ -1,38 +1,36 @@
 import Button from '../ui/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCloudUploadAlt, faPencilAlt, faBookOpen, faMagicWandSparkles, faHeart, faShippingFast } from '@fortawesome/free-solid-svg-icons';
+import { faCloudUploadAlt, faPencilAlt, faBookOpen, faMagicWandSparkles, faHeart, faShippingFast, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import Image from 'next/image';
 
 export default function HowItWorks() {
-  const steps = [
+  const timelineSteps = [
     {
       number: 1,
-      title: "Upload & Dream",
-      subtitle: "Share Your Photos & Story Ideas",
-      description: "Upload clear photos of your little heroes and tell us about the magical adventure you want to create together!",
-      features: ["Upload family photos", "Describe your story idea", "Choose adventure themes"],
-      icon: faCloudUploadAlt,
+      title: "Upload Your Photo",
+      subtitle: "Share Your Little Hero",
+      description: "Upload a clear photo of your child and tell us about the magical adventure you want to create!",
+      image: "/images/upload.png",
       bgColor: "bg-soft-pink",
       iconColor: "text-tale-purple",
       emoji: "📸"
     },
     {
       number: 2,
-      title: "Customize & Create",
-      subtitle: "Design Your Perfect Adventure",
-      description: "Pick your art style, age group, and story length. Our magical AI storytellers will weave your personalized tale!",
-      features: ["Choose illustration style", "Select perfect age group", "Pick story length"],
-      icon: faPencilAlt,
+      title: "AI Creates Character",
+      subtitle: "Watch the Magic Happen",
+      description: "Our AI transforms your photo into a beautiful animated character that will star in your personalized storybook!",
+      image: "/images/character.png",
       bgColor: "bg-lavender",
       iconColor: "text-magic-orange",
       emoji: "🎨"
     },
     {
       number: 3,
-      title: "Print & Enjoy",
-      subtitle: "Receive Your Magical Book",
-      description: "Your beautiful, professional-quality storybook is printed with love and delivered right to your door!",
-      features: ["Professional proofreading", "Professional printing", "Fast, free shipping", "Made with love"],
-      icon: faBookOpen,
+      title: "Receive Your Book",
+      subtitle: "Magic Delivered to Your Door",
+      description: "Your child receives their very own personalized storybook featuring them as the hero of an amazing adventure!",
+      image: "/images/finished.png",
       bgColor: "bg-cream",
       iconColor: "text-adventure-green",
       emoji: "📚"
@@ -63,63 +61,75 @@ export default function HowItWorks() {
           </h2>
           
           <p className="friendly-lg text-charcoal max-w-3xl mx-auto leading-relaxed">
-            Creating your personalized storybook is as easy as 1-2-3! 
-            Follow these simple steps to bring your magical adventure to life.
+            Watch your child transform from a simple photo into the hero of their very own personalized storybook adventure!
           </p>
         </div>
         
-        {/* Steps */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-16">
-          {steps.map((step, index) => (
-            <div key={index} className="relative">
-              {/* Connecting line for desktop */}
-              {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-16 left-full w-12 h-1 bg-gradient-to-r from-magic-orange to-tale-purple opacity-30 transform translate-x-0 z-0"></div>
-              )}
-              
-              <div className={`${step.bgColor} rounded-magical p-8 shadow-gentle hover:shadow-magical transition-all duration-300 transform hover:-translate-y-2 relative z-10`}>
-                {/* Step number and emoji */}
-                <div className="flex items-center justify-center mb-6">
-                  <div className="relative">
-                    <div className="w-20 h-20 bg-white rounded-full shadow-gentle flex items-center justify-center">
-                      <span className="text-3xl">{step.emoji}</span>
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-magic-orange rounded-full flex items-center justify-center">
-                      <span className="text-white font-fredoka font-bold text-sm">{step.number}</span>
+        {/* Dynamic Timeline */}
+        <div className="max-w-6xl mx-auto mb-16">
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-4">
+            {timelineSteps.map((step, index) => (
+              <div key={index} className="flex flex-col lg:flex-row items-center gap-4 lg:gap-8">
+                {/* Step Content */}
+                <div className="flex flex-col items-center text-center max-w-sm">
+                  {/* Step Number */}
+                  <div className="relative mb-4">
+                    <div className="w-16 h-16 bg-white rounded-full shadow-magical flex items-center justify-center border-4 border-magic-orange">
+                      <span className="text-2xl font-fredoka font-bold text-magic-orange">{step.number}</span>
                     </div>
                   </div>
-                </div>
-                
-                {/* Title */}
-                <h3 className="font-fredoka font-bold text-2xl text-center mb-2 text-inkwell-black">
-                  {step.title}
-                </h3>
-                
-                {/* Subtitle */}
-                <p className="friendly-text text-center mb-4 text-charcoal font-semibold">
-                  {step.subtitle}
-                </p>
-                
-                {/* Description */}
-                <p className="friendly-text text-center mb-6 text-charcoal leading-relaxed">
-                  {step.description}
-                </p>
-                
-                {/* Features */}
-                <div className="space-y-2">
-                  {step.features.map((feature, featureIndex) => (
-                    <div key={featureIndex} className="flex items-center gap-3">
-                      <span className="text-adventure-green text-lg">✓</span>
-                      <span className="friendly-text text-charcoal">{feature}</span>
+                  
+                  {/* Image */}
+                  <div className="relative w-48 h-48 mb-6 rounded-magical overflow-hidden shadow-magical hover:shadow-adventure transition-all duration-300 transform hover:scale-105">
+                    <Image 
+                      src={step.image} 
+                      alt={step.title}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <span className="text-3xl">{step.emoji}</span>
                     </div>
-                  ))}
+                  </div>
+                  
+                  {/* Title & Description */}
+                  <h3 className="font-fredoka font-bold text-xl mb-2 text-inkwell-black">
+                    {step.title}
+                  </h3>
+                  <p className="friendly-text text-tale-purple font-semibold mb-3">
+                    {step.subtitle}
+                  </p>
+                  <p className="friendly-text text-charcoal leading-relaxed text-sm">
+                    {step.description}
+                  </p>
                 </div>
+                
+                {/* Arrow (except for last step) */}
+                {index < timelineSteps.length - 1 && (
+                  <div className="flex-shrink-0">
+                    <div className="hidden lg:block">
+                      <FontAwesomeIcon 
+                        icon={faArrowRight} 
+                        className="text-3xl text-magic-orange sparkle-animation" 
+                        style={{ animationDelay: `${index * 0.5}s` }}
+                      />
+                    </div>
+                    <div className="lg:hidden rotate-90">
+                      <FontAwesomeIcon 
+                        icon={faArrowRight} 
+                        className="text-3xl text-magic-orange sparkle-animation" 
+                        style={{ animationDelay: `${index * 0.5}s` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
         
-        {/* Centered CTA after all steps */}
+        {/* Centered CTA after timeline */}
         <div className="text-center mb-16">
           <Button href="/create" size="lg" className="adventure-button text-lg px-8 py-4">
             <FontAwesomeIcon icon={faMagicWandSparkles} className="mr-2" />

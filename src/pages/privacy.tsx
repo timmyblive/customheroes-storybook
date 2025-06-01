@@ -103,6 +103,24 @@ export default function PrivacyPolicyPage() {
             </div>
 
             <div className="mb-10">
+              <h2 className="font-montserrat font-bold text-2xl text-inkwell-black mb-4">Third-Party Image Generation Services</h2>
+              <p>
+                To create the personalized illustrations for your storybooks, we use third-party artificial intelligence 
+                image generation services. This means that:
+              </p>
+              <ul className="list-disc pl-6 mb-4">
+                <li>The photos you upload and character information you provide may be processed by these third-party AI services</li>
+                <li>These services have their own privacy policies and data handling practices</li>
+                <li>While we do not explicitly sell your information, your data will be subject to the privacy policies of these third-party providers</li>
+                <li>We carefully select reputable providers and work to ensure they maintain appropriate security standards</li>
+              </ul>
+              <p>
+                By using our service, you acknowledge and consent to this use of third-party image generation services 
+                for the purpose of creating your personalized storybook illustrations.
+              </p>
+            </div>
+
+            <div className="mb-10">
               <h2 className="font-montserrat font-bold text-2xl text-inkwell-black mb-4">Your Rights</h2>
               <p>Depending on your location, you may have the following rights:</p>
               <ul className="list-disc pl-6 mb-4">

@@ -1050,12 +1050,13 @@ export default function CreateStorybook() {
                       </p>
                       <div className="bg-white/80 p-4 rounded-magical mb-4 border-l-3 border-adventure-green">
                         <p className="friendly-text text-charcoal mb-2">
-                          <span className="font-semibold">✨ Important:</span> You can be as detailed or brief as you'd like when describing your story. 
+                          <span className="font-semibold">✨ Story Details:</span> It's completely up to you how much detail to provide!
                         </p>
                         <ul className="friendly-text text-charcoal space-y-2 list-disc pl-5">
-                          <li>We'll try to include as much from your story description as possible, but our AI may not include every detail.</li>
-                          <li>You'll have a chance to review your story before printing, with <span className="font-semibold">up to 2 revisions</span> included per book.</li>
-                          <li>The more specific your description, the more personalized your story will be!</li>
+                          <li><span className="font-semibold">Want a surprise?</span> Keep it brief and our AI will create a delightful adventure for you.</li>
+                          <li><span className="font-semibold">Have specific ideas?</span> Share them! While we can't guarantee every detail will be included, we'll do our best.</li>
+                          <li>After you review your draft, you can request <span className="font-semibold">up to 2 total revisions</span>. Each specific change (character detail, plot point, story element) counts as one revision.</li>
+                          <li>Whether detailed or simple, we'll create a magical personalized experience!</li>
                         </ul>
                       </div>
                       {errors.storyDescription && (
