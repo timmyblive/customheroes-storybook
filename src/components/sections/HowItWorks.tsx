@@ -10,7 +10,7 @@ export default function HowItWorks() {
       title: "Upload Your Photo",
       subtitle: "Share Your Little Hero",
       description: "Upload a clear photo of your child and tell us about the magical adventure you want to create!",
-      image: "/images/Upload.png",
+      image: "/images/upload.png",
       bgColor: "bg-soft-pink",
       iconColor: "text-tale-purple",
       emoji: "📸"
@@ -38,7 +38,7 @@ export default function HowItWorks() {
   ];
 
   return (
-    <section className="py-16 md:py-24 bg-hero-gradient relative overflow-hidden">
+    <section className="py-8 md:py-12 bg-hero-gradient relative overflow-hidden">
       {/* Magical background elements */}
       <div className="absolute inset-0 opacity-10">
         <div className="sparkle-animation absolute top-20 left-10 text-3xl text-sunshine-yellow">✨</div>
@@ -50,19 +50,56 @@ export default function HowItWorks() {
       <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="flex justify-center items-center gap-3 mb-4">
-            <FontAwesomeIcon icon={faMagicWandSparkles} className="text-4xl text-magic-orange sparkle-animation" />
-            <span className="friendly-text text-tale-purple font-semibold">Simple Magic</span>
+          <div className="flex justify-center items-center gap-3 mb-6">
+            <div className="relative">
+              <FontAwesomeIcon icon={faMagicWandSparkles} className="text-5xl text-magic-orange sparkle-animation" />
+              <div className="absolute -top-2 -right-2 text-2xl animate-bounce">✨</div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-gentle border border-magic-orange/20">
+              <span className="friendly-text text-tale-purple font-bold text-lg">Simple Magic</span>
+            </div>
+            <div className="relative">
+              <FontAwesomeIcon icon={faBookOpen} className="text-4xl text-tale-purple sparkle-animation" style={{ animationDelay: '0.5s' }} />
+              <div className="absolute -top-1 -left-1 text-xl animate-pulse">💫</div>
+            </div>
           </div>
           
-          <h2 className="font-fredoka font-bold text-4xl md:text-5xl mb-6 text-inkwell-black">
-            How the Magic 
-            <span className="text-magic-orange"> Happens!</span>
-          </h2>
+          <div className="relative">
+            <h2 className="font-fredoka font-bold text-5xl md:text-6xl mb-6 text-inkwell-black relative z-10">
+              How the Magic 
+              <span className="text-magic-orange relative">
+                Happens!
+                <div className="absolute -top-4 -right-4 text-3xl animate-spin-slow">⭐</div>
+              </span>
+            </h2>
+            
+            {/* Decorative elements behind title */}
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-4 w-full h-full opacity-10 pointer-events-none">
+              <div className="relative w-full h-full">
+                <div className="absolute top-4 left-1/4 text-4xl text-sunshine-yellow animate-pulse">✨</div>
+                <div className="absolute top-8 right-1/4 text-3xl text-magic-orange animate-bounce" style={{ animationDelay: '1s' }}>🌟</div>
+                <div className="absolute bottom-4 left-1/3 text-2xl text-tale-purple animate-pulse" style={{ animationDelay: '2s' }}>💫</div>
+                <div className="absolute bottom-8 right-1/3 text-4xl text-adventure-green animate-bounce" style={{ animationDelay: '0.5s' }}>✨</div>
+              </div>
+            </div>
+          </div>
           
-          <p className="friendly-lg text-charcoal max-w-3xl mx-auto leading-relaxed">
-            Watch your child transform from a simple photo into the hero of their very own personalized storybook adventure!
-          </p>
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-gradient-to-r from-soft-pink/30 via-lavender/30 to-cream/30 rounded-magical p-8 backdrop-blur-sm border border-white/50 shadow-magical">
+              <p className="friendly-xl text-charcoal leading-relaxed font-medium">
+                Watch your child transform from a simple photo into the 
+                <span className="text-tale-purple font-bold"> hero of their very own </span>
+                personalized storybook adventure!
+              </p>
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <span className="text-2xl animate-bounce">📸</span>
+                <FontAwesomeIcon icon={faArrowRight} className="text-magic-orange text-xl animate-pulse" />
+                <span className="text-2xl animate-bounce" style={{ animationDelay: '0.3s' }}>🎨</span>
+                <FontAwesomeIcon icon={faArrowRight} className="text-magic-orange text-xl animate-pulse" style={{ animationDelay: '0.6s' }} />
+                <span className="text-2xl animate-bounce" style={{ animationDelay: '0.9s' }}>📚</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Dynamic Timeline */}
@@ -75,7 +112,7 @@ export default function HowItWorks() {
                   {/* Step Number */}
                   <div className="relative mb-4">
                     <div className="w-16 h-16 bg-white rounded-full shadow-magical flex items-center justify-center border-4 border-magic-orange">
-                      <span className="text-2xl font-fredoka font-bold text-magic-orange">{step.number}</span>
+                      <span className="text-2xl">{step.emoji}</span>
                     </div>
                   </div>
                   
@@ -88,9 +125,6 @@ export default function HowItWorks() {
                       className="object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <span className="text-3xl">{step.emoji}</span>
-                    </div>
                   </div>
                   
                   {/* Title & Description */}

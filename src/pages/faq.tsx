@@ -56,7 +56,11 @@ export default function FAQPage() {
     },
     {
       question: "How secure are the photos I upload?",
-      answer: "We take your privacy seriously. All uploaded photos are stored securely and are only used for the purpose of creating your personalized book. We do not share your photos with third parties or use them for marketing purposes without your explicit consent."
+      answer: "We take your privacy seriously. All uploaded photos are stored securely and are only used for creating your personalized book. To create your custom character illustrations, we use trusted third-party AI image generation services, which means your photos may be processed by these services as part of the creation process. These third-party providers have their own privacy policies and data handling practices. We select reputable providers and require your consent for this processing. We do not share your photos for marketing purposes without your explicit consent."
+    },
+    {
+      question: "Can I cancel or change my order?",
+      answer: "Please contact us as soon as possible if you need to cancel or make changes to your order. We'll do our best to accommodate your request, but please note that we may not be able to make changes once an order has been processed."
     }
   ];
 
@@ -116,16 +120,6 @@ export default function FAQPage() {
                   <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                 </svg>
                 support@customheroes.ai
-              </a>
-              <span className="hidden sm:inline text-charcoal">|</span>
-              <a 
-                href="tel:+18005551234" 
-                className="inline-flex items-center justify-center text-story-blue hover:text-tale-purple transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                </svg>
-                1-800-555-1234
               </a>
             </div>
           </div>
