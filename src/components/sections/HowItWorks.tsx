@@ -10,7 +10,7 @@ export default function HowItWorks() {
       title: "Upload Your Photo",
       subtitle: "Share Your Little Hero",
       description: "Upload a clear photo of your child and tell us about the magical adventure you want to create!",
-      image: "/images/upload.png",
+      image: "/images/Upload.png",
       bgColor: "bg-soft-pink",
       iconColor: "text-tale-purple",
       emoji: "📸"
