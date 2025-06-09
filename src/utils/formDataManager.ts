@@ -13,6 +13,8 @@ const STORAGE_KEY = 'customHeroes_formData';
  * Save form data to localStorage
  */
 export const saveFormData = (key: string, data: unknown): void => {
+  if (typeof window === 'undefined') return;
+  
   try {
     // Get existing data
     const existingData = getAllFormData();
@@ -35,6 +37,8 @@ export const saveFormData = (key: string, data: unknown): void => {
  * Get all form data from localStorage
  */
 export const getAllFormData = (): Record<string, unknown> => {
+  if (typeof window === 'undefined') return {};
+  
   try {
     const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
@@ -51,14 +55,23 @@ export const getAllFormData = (): Record<string, unknown> => {
  * Get specific form data by key
  */
 export const getFormData = (key: string): unknown => {
-  const allData = getAllFormData();
-  return allData[key];
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const allData = getAllFormData();
+    return allData[key];
+  } catch (error) {
+    console.error('Error getting form data:', error);
+    return null;
+  }
 };
 
 /**
  * Clear all form data
  */
 export const clearAllFormData = (): void => {
+  if (typeof window === 'undefined') return;
+  
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (error) {
@@ -70,6 +83,8 @@ export const clearAllFormData = (): void => {
  * Clear specific form data by key
  */
 export const clearFormData = (key: string): void => {
+  if (typeof window === 'undefined') return;
+  
   try {
     const allData = getAllFormData();
     if (allData[key]) {
@@ -85,6 +100,7 @@ export const clearFormData = (key: string): void => {
  * Save current step in the book creation process
  */
 export const saveCurrentStep = (step: number): void => {
+  if (typeof window === 'undefined') return;
   saveFormData('currentStep', step);
 };
 
@@ -92,6 +108,8 @@ export const saveCurrentStep = (step: number): void => {
  * Get the last saved step in the book creation process
  */
 export const getCurrentStep = (): number => {
+  if (typeof window === 'undefined') return 1;
+  
   const step = getFormData('currentStep');
   return typeof step === 'number' ? step : 1;
 };
@@ -100,6 +118,8 @@ export const getCurrentStep = (): number => {
  * Setup event listeners for browser navigation
  */
 export const setupBrowserNavigationHandlers = (saveCallback: () => void): () => void => {
+  if (typeof window === 'undefined') return () => {};
+  
   // Save data before page unload (refresh, close, etc.)
   const handleBeforeUnload = () => {
     saveCallback();
