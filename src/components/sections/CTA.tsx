@@ -12,8 +12,7 @@ export default function CTA() {
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Button href="/create" variant="cta" size="lg">
-            <span className="hidden sm:inline">Start Creating</span>
-            <span className="sm:hidden">Create</span>
+            Start Creating
           </Button>
           <Button href="/how-it-works" variant="cta-outline" size="lg">
             Learn More

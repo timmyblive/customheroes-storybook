@@ -167,8 +167,7 @@ export default function HowItWorks() {
         <div className="text-center mb-16">
           <Button href="/create" size="lg" className="adventure-button text-lg px-8 py-4">
             <FontAwesomeIcon icon={faMagicWandSparkles} className="mr-2" />
-            <span className="hidden sm:inline">Start Creating Your Adventure</span>
-            <span className="sm:hidden">Start Creating</span>
+            Start Creating
           </Button>
         </div>
         

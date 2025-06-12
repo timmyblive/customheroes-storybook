@@ -53,7 +53,6 @@ interface GiftCard {
 
 const CreateStorybook: React.FC = () => {
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [characterPhotos, setCharacterPhotos] = useState<CharacterPhoto[]>([]);
   const [storyDescription, setStoryDescription] = useState('');
@@ -261,90 +260,83 @@ const CreateStorybook: React.FC = () => {
 
   // Load saved form data on mount
   useEffect(() => {
-    setIsClient(true);
-    
-    // Only access localStorage on client side
-    if (typeof window !== 'undefined') {
-      const savedCurrentStep = getFormData('creation_currentStep');
-      if (savedCurrentStep) {
-        setCurrentStep(Number(savedCurrentStep));
-      }
-      
-      const savedCharacterPhotos = getFormData('creation_characterPhotos');
-      if (savedCharacterPhotos && Array.isArray(savedCharacterPhotos)) {
-        setCharacterPhotos(savedCharacterPhotos);
-      }
-      
-      const savedStoryDescription = getFormData('creation_storyDescription');
-      if (savedStoryDescription && typeof savedStoryDescription === 'string') {
-        setStoryDescription(savedStoryDescription);
-      }
-      
-      const savedSelectedAgeGroup = getFormData('creation_selectedAgeGroup');
-      if (savedSelectedAgeGroup && typeof savedSelectedAgeGroup === 'string') {
-        setSelectedAgeGroup(savedSelectedAgeGroup);
-      }
-      
-      const savedSelectedTheme = getFormData('creation_selectedTheme');
-      if (savedSelectedTheme && typeof savedSelectedTheme === 'string') {
-        setSelectedTheme(savedSelectedTheme);
-      }
-      
-      const savedSelectedPageCount = getFormData('creation_selectedPageCount');
-      if (savedSelectedPageCount && typeof savedSelectedPageCount === 'string') {
-        setSelectedPageCount(savedSelectedPageCount);
-      }
-      
-      const savedSelectedIllustrationStyle = getFormData('creation_selectedIllustrationStyle');
-      if (savedSelectedIllustrationStyle && typeof savedSelectedIllustrationStyle === 'string') {
-        setSelectedIllustrationStyle(savedSelectedIllustrationStyle);
-      }
-      
-      const savedPersonalMessage = getFormData('creation_personalMessage');
-      if (savedPersonalMessage && typeof savedPersonalMessage === 'string') {
-        setPersonalMessage(savedPersonalMessage);
-      }
-      
-      const savedBookTitle = getFormData('creation_bookTitle');
-      if (savedBookTitle && typeof savedBookTitle === 'string') {
-        setBookTitle(savedBookTitle);
-      }
-      
-      const savedCustomerEmail = getFormData('creation_customerEmail');
-      if (savedCustomerEmail && typeof savedCustomerEmail === 'string') {
-        setCustomerEmail(savedCustomerEmail);
-      }
-      
-      const savedCustomerName = getFormData('creation_customerName');
-      if (savedCustomerName && typeof savedCustomerName === 'string') {
-        setCustomerName(savedCustomerName);
-      }
-      
-      const savedSelectedPackage = getFormData('creation_selectedPackage');
-      if (savedSelectedPackage && typeof savedSelectedPackage === 'string') {
-        setSelectedPackage(savedSelectedPackage as 'basic' | 'premium' | 'deluxe');
-      }
-      
-      const savedGiftCardAmount = getFormData('creation_giftCardAmount');
-      if (savedGiftCardAmount && typeof savedGiftCardAmount === 'number') {
-        setGiftCardAmount(savedGiftCardAmount);
-      }
-      
-      const savedAdditionalCopies = getFormData('creation_additionalCopies');
-      if (savedAdditionalCopies && typeof savedAdditionalCopies === 'number') {
-        setAdditionalCopies(savedAdditionalCopies);
-      }
-      
-      const cleanup = setupBrowserNavigationHandlers(saveCreationFormData);
-      return cleanup;
+    const savedCurrentStep = getFormData('creation_currentStep');
+    if (savedCurrentStep) {
+      setCurrentStep(Number(savedCurrentStep));
     }
+    
+    const savedCharacterPhotos = getFormData('creation_characterPhotos');
+    if (savedCharacterPhotos && Array.isArray(savedCharacterPhotos)) {
+      setCharacterPhotos(savedCharacterPhotos);
+    }
+    
+    const savedStoryDescription = getFormData('creation_storyDescription');
+    if (savedStoryDescription && typeof savedStoryDescription === 'string') {
+      setStoryDescription(savedStoryDescription);
+    }
+    
+    const savedSelectedAgeGroup = getFormData('creation_selectedAgeGroup');
+    if (savedSelectedAgeGroup && typeof savedSelectedAgeGroup === 'string') {
+      setSelectedAgeGroup(savedSelectedAgeGroup);
+    }
+    
+    const savedSelectedTheme = getFormData('creation_selectedTheme');
+    if (savedSelectedTheme && typeof savedSelectedTheme === 'string') {
+      setSelectedTheme(savedSelectedTheme);
+    }
+    
+    const savedSelectedPageCount = getFormData('creation_selectedPageCount');
+    if (savedSelectedPageCount && typeof savedSelectedPageCount === 'string') {
+      setSelectedPageCount(savedSelectedPageCount);
+    }
+    
+    const savedSelectedIllustrationStyle = getFormData('creation_selectedIllustrationStyle');
+    if (savedSelectedIllustrationStyle && typeof savedSelectedIllustrationStyle === 'string') {
+      setSelectedIllustrationStyle(savedSelectedIllustrationStyle);
+    }
+    
+    const savedPersonalMessage = getFormData('creation_personalMessage');
+    if (savedPersonalMessage && typeof savedPersonalMessage === 'string') {
+      setPersonalMessage(savedPersonalMessage);
+    }
+    
+    const savedBookTitle = getFormData('creation_bookTitle');
+    if (savedBookTitle && typeof savedBookTitle === 'string') {
+      setBookTitle(savedBookTitle);
+    }
+    
+    const savedCustomerEmail = getFormData('creation_customerEmail');
+    if (savedCustomerEmail && typeof savedCustomerEmail === 'string') {
+      setCustomerEmail(savedCustomerEmail);
+    }
+    
+    const savedCustomerName = getFormData('creation_customerName');
+    if (savedCustomerName && typeof savedCustomerName === 'string') {
+      setCustomerName(savedCustomerName);
+    }
+    
+    const savedSelectedPackage = getFormData('creation_selectedPackage');
+    if (savedSelectedPackage && typeof savedSelectedPackage === 'string') {
+      setSelectedPackage(savedSelectedPackage as 'basic' | 'premium' | 'deluxe');
+    }
+    
+    const savedGiftCardAmount = getFormData('creation_giftCardAmount');
+    if (savedGiftCardAmount && typeof savedGiftCardAmount === 'number') {
+      setGiftCardAmount(savedGiftCardAmount);
+    }
+    
+    const savedAdditionalCopies = getFormData('creation_additionalCopies');
+    if (savedAdditionalCopies && typeof savedAdditionalCopies === 'number') {
+      setAdditionalCopies(savedAdditionalCopies);
+    }
+    
+    const cleanup = setupBrowserNavigationHandlers(saveCreationFormData);
+    return cleanup;
   }, []);
 
   // Save form data when any state changes
   useEffect(() => {
-    if (isClient) {
-      saveCreationFormData();
-    }
+    saveCreationFormData();
   }, [
     currentStep,
     characterPhotos,
@@ -360,21 +352,7 @@ const CreateStorybook: React.FC = () => {
     selectedPackage,
     additionalCopies,
     giftCardAmount,
-    isClient
   ]);
-
-  if (!isClient) {
-    return (
-      <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
@@ -553,8 +531,7 @@ const CreateStorybook: React.FC = () => {
                       className="adventure-button clickable-button"
                       style={{ pointerEvents: 'auto', position: 'relative' }}
                     >
-                      <span className="hidden sm:inline">💳 Proceed to Payment →</span>
-                      <span className="sm:hidden">💳 Pay →</span>
+                      💳 Proceed to Payment →
                     </Button>
                   )}
                 </div>
