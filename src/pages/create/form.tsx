@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { saveFormData, getFormData, saveCurrentStep, setupBrowserNavigationHandlers } from '../../utils/formDataManager';
 import Layout from '../../components/layout/Layout';
 import Input from '../../components/ui/Input';
@@ -115,8 +115,8 @@ const CreateStorybook: React.FC = () => {
     { number: 4, title: 'Review & Payment', icon: faShoppingCart },
   ];
 
-  // Validation function - separated into two parts to prevent infinite loops
-  const getValidationErrors = useCallback((step: number): Record<string, string> => {
+  // Validation function
+  const validateStep = (step: number): boolean => {
     const newErrors: Record<string, string> = {};
 
     switch (step) {
@@ -153,21 +153,9 @@ const CreateStorybook: React.FC = () => {
         break;
     }
 
-    return newErrors;
-  }, [customerName, customerEmail, characterPhotos, storyDescription, selectedAgeGroup, selectedTheme, selectedPackage]);
-
-  // Check if step is valid without setting errors
-  const isStepValid = useMemo(() => {
-    const validationErrors = getValidationErrors(currentStep);
-    return Object.keys(validationErrors).length === 0;
-  }, [getValidationErrors, currentStep]);
-
-  // Validate and set errors (only call this when user tries to proceed)
-  const validateStep = useCallback((step: number): boolean => {
-    const newErrors = getValidationErrors(step);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [getValidationErrors]);
+  };
 
   // Navigation handlers
   const handleNextStep = () => {
@@ -529,7 +517,7 @@ const CreateStorybook: React.FC = () => {
                       <Button 
                         type="button" 
                         onClick={handleNextStep} 
-                        disabled={isLoading || !isStepValid}
+                        disabled={isLoading || !validateStep(currentStep)}
                         className="adventure-button clickable-button"
                         style={{ pointerEvents: 'auto', position: 'relative' }}
                       >
@@ -541,7 +529,7 @@ const CreateStorybook: React.FC = () => {
                         onClick={() => {
                           handleSubmit();
                         }}
-                        disabled={isLoading || !isStepValid}
+                        disabled={isLoading || !validateStep(currentStep)}
                         className="adventure-button clickable-button"
                         style={{ pointerEvents: 'auto', position: 'relative' }}
                       >
