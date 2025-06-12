@@ -47,6 +47,7 @@ export default function CustomizeBook() {
     bookTitle: '',
     quantity: ''
   });
+  const [projectNumber, setProjectNumber] = useState<string>('');
 
   // Save form data to localStorage
   const saveCustomizeFormData = () => {
@@ -184,6 +185,13 @@ export default function CustomizeBook() {
     }
   }, [bookId, bookTitle]);
 
+  // Generate project number on client side only to prevent hydration mismatch
+  useEffect(() => {
+    if (!projectNumber) {
+      setProjectNumber(String(Math.floor(Math.random() * 90000) + 10000));
+    }
+  }, [projectNumber]);
+
   // Handle continue to next step
   const handleContinue = () => {
     if (!validateForm()) {
@@ -231,7 +239,7 @@ export default function CustomizeBook() {
             {/* Header */}
             <div className="bg-brand-gradient text-white px-6 py-4 flex justify-between items-center">
               <h1 className="font-montserrat font-semibold text-lg">Create Your Storybook</h1>
-              <span className="text-sm">Project #{bookId || Math.floor(Math.random() * 90000) + 10000}</span>
+              <span className="text-sm">Project #{bookId || projectNumber}</span>
             </div>
             
             {/* Progress Bar */}

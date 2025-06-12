@@ -78,6 +78,14 @@ export default function StoryPreview() {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isLoadingBook, setIsLoadingBook] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [projectNumber, setProjectNumber] = useState<string>('');
+
+  // Generate project number on client side only to prevent hydration mismatch
+  useEffect(() => {
+    if (!projectNumber) {
+      setProjectNumber(String(Math.floor(Math.random() * 90000) + 10000));
+    }
+  }, [projectNumber]);
 
   // Fetch book data when component mounts and bookId is available
   useEffect(() => {
@@ -206,7 +214,7 @@ export default function StoryPreview() {
             {/* Header */}
             <div className="bg-brand-gradient text-white px-6 py-4 flex justify-between items-center">
               <h1 className="font-montserrat font-semibold text-lg">Create Your Storybook</h1>
-              <span className="text-sm">Project #{bookId || Math.floor(Math.random() * 90000) + 10000}</span>
+              <span className="text-sm">Project #{bookId || projectNumber}</span>
             </div>
             
             {/* Progress Bar */}
