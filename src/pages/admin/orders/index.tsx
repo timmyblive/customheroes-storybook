@@ -16,6 +16,7 @@ import {
   faEnvelope
 } from '@fortawesome/free-solid-svg-icons';
 import { Order, OrderStatus } from '../../../types/order';
+import { formatDateSafe } from '../../../utils/formatters';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -262,10 +263,10 @@ export default function AdminOrdersPage() {
                       <div>
                         <p className="font-semibold text-charcoal">Created</p>
                         <p className="text-inkwell-black">
-                          {new Date(order.createdAt).toLocaleDateString()}
+                          {formatDateSafe(order.createdAt).date}
                         </p>
                         <p className="text-charcoal">
-                          {new Date(order.createdAt).toLocaleTimeString()}
+                          {formatDateSafe(order.createdAt).time}
                         </p>
                       </div>
                     </div>

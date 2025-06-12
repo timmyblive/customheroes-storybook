@@ -38,3 +38,42 @@ export function formatDateTime(dateString: string): string {
     minute: '2-digit',
   });
 }
+
+/**
+ * Format time only from a date string (client-safe)
+ * @param dateString - The date string to format
+ * @returns Formatted time string
+ */
+export function formatTime(dateString: string): string {
+  return new Date(dateString).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+/**
+ * Client-safe date formatter that prevents hydration mismatches
+ * @param dateString - The date string to format
+ * @returns Object with date and time strings
+ */
+export function formatDateSafe(dateString: string): { date: string; time: string } {
+  const date = new Date(dateString);
+  
+  // Use consistent formatting with explicit locale and options
+  const dateStr = date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC' // Force UTC to prevent timezone differences
+  });
+  
+  const timeStr = date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'UTC' // Force UTC to prevent timezone differences
+  });
+  
+  return { date: dateStr, time: timeStr };
+}

@@ -34,6 +34,7 @@ import {
   faPrint
 } from '@fortawesome/free-solid-svg-icons';
 import { Order, OrderStatus } from '../../../types/order';
+import { formatDateSafe, formatDateTime } from '../../../utils/formatters';
 
 export default function AdminOrderDetailsPage() {
   const router = useRouter();
@@ -256,14 +257,7 @@ export default function AdminOrderDetailsPage() {
                         Order #{order.id.slice(-8).toUpperCase()}
                       </h1>
                       <p className="text-charcoal/70 font-medium">
-                        Created {new Date(order.createdAt).toLocaleDateString('en-US', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        Created {formatDateTime(order.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -457,7 +451,7 @@ export default function AdminOrderDetailsPage() {
                             </span>
                             {(order.proof.revisionCount ?? 0) > 0 && (
                               <span className="ml-2 text-xs text-charcoal/70">
-                                (Last updated: {new Date().toLocaleDateString()})
+                                (Last updated: {formatDateSafe(new Date().toISOString()).date})
                               </span>
                             )}
                           </div>
@@ -507,7 +501,7 @@ export default function AdminOrderDetailsPage() {
                                     )}
                                   </div>
                                   <div className="text-xs text-charcoal/70 mt-1">
-                                    Sent {new Date(record.sentAt).toLocaleString()}
+                                    Sent {formatDateTime(record.sentAt)}
                                   </div>
                                 </div>
                                 <Button

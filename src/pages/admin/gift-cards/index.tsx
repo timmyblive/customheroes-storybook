@@ -4,7 +4,7 @@ import Layout from '../../../components/layout/Layout';
 import Button from '../../../components/ui/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGift, faSearch, faSync, faEdit, faEye, faPlus } from '@fortawesome/free-solid-svg-icons';
-import { formatCurrency } from '../../../utils/formatters';
+import { formatCurrency, formatDate } from '../../../utils/formatters';
 
 interface GiftCard {
   id: number;
@@ -285,13 +285,13 @@ export default function AdminGiftCards() {
                         </td>
                         <td className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
                           <div className="text-left font-medium text-slate-800">
-                            {new Date(giftCard.created_at).toLocaleDateString()}
+                            {formatDate(giftCard.created_at)}
                           </div>
                         </td>
                         <td className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
                           <div className="text-left font-medium text-slate-800">
                             {giftCard.last_used_at
-                              ? new Date(giftCard.last_used_at).toLocaleDateString()
+                              ? formatDate(giftCard.last_used_at)
                               : 'Never'}
                           </div>
                         </td>

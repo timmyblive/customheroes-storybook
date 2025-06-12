@@ -17,6 +17,7 @@ import {
   faDownload,
   faShare
 } from '@fortawesome/free-solid-svg-icons';
+import { formatDate } from '../../utils/formatters';
 
 interface OrderData {
   id: string;
@@ -314,7 +315,7 @@ export default function OrderDetailsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <FontAwesomeIcon icon={faCalendar} className="text-gray-400" />
-                      <span>Ordered: {new Date(order.createdAt).toLocaleDateString()}</span>
+                      <span>Ordered: {formatDate(order.createdAt)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FontAwesomeIcon icon={faTruck} className="text-gray-400" />
