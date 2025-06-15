@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getGiftCardByCode } from '../../../lib/database';
+import { getGiftCardByCode, getGiftCardAvailableBalance } from '../../../lib/database';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -36,18 +36,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Return gift card details
+    // Get available balance (remaining amount minus active reservations)
+    const availableBalance = await getGiftCardAvailableBalance(giftCard.id);
+    
+    // Check if there's any available balance
+    if (availableBalance <= 0) {
+      return res.status(400).json({ 
+        error: 'Gift card has no available balance',
+        status: 'insufficient_balance'
+      });
+    }
+
+    // Return gift card details with available balance
     return res.status(200).json({
       success: true,
       giftCard: {
         code: giftCard.code,
-        remainingAmount: giftCard.remaining_amount,
+        remainingAmount: availableBalance, // Use available balance instead of raw remaining_amount
         currency: giftCard.currency,
         status: giftCard.status
       }
     });
   } catch (error) {
     console.error('Error checking gift card:', error);
-    return res.status(500).json({ error: 'Failed to check gift card' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
