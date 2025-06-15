@@ -622,7 +622,7 @@ export async function updateGiftCardBalance(
         last_used_at = ${lastUsedAt},
         status = CASE 
           WHEN ${newRemainingAmount} <= 0 THEN 'redeemed'
-          ELSE status
+          ELSE 'active'
         END
       WHERE id = ${giftCardId}
       RETURNING *
@@ -728,12 +728,17 @@ export async function confirmGiftCardReservation(
     
     const reservation = reservationResult[0] as GiftCardReservation;
     
-    // Update gift card balance
-    await sql`
+    // Update gift card balance and status
+    const updateResult = await sql`
       UPDATE gift_cards 
       SET remaining_amount = remaining_amount - ${reservation.reserved_amount},
-          last_used_at = CURRENT_TIMESTAMP
+          last_used_at = CURRENT_TIMESTAMP,
+          status = CASE 
+            WHEN remaining_amount - ${reservation.reserved_amount} <= 0 THEN 'redeemed'
+            ELSE 'active'
+          END
       WHERE id = ${reservation.gift_card_id}
+      RETURNING remaining_amount
     `;
     
     // Mark reservation as confirmed
