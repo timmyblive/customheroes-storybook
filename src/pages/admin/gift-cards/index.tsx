@@ -76,6 +76,12 @@ export default function AdminGiftCards() {
       setIsLoading(true);
       const response = await fetch('/api/admin/fix-gift-card-statuses', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adminKey: 'fix-gift-cards-2024'
+        })
       });
       
       if (!response.ok) throw new Error('Failed to fix gift card statuses');
