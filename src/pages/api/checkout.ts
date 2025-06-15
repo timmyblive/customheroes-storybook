@@ -296,7 +296,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         appliedGiftCardCode: formatMetadataValue(validatedGiftCardCode),
       },
       success_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create/confirmation?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create?step=4`,
+      cancel_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create/4`,
     });
     console.log('Stripe session created:', session.id);
 

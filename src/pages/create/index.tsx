@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { saveFormData, getFormData, saveCurrentStep, setupBrowserNavigationHandlers } from '../../utils/formDataManager';
 import Layout from '../../components/layout/Layout';
 import Input from '../../components/ui/Input';
@@ -48,6 +49,7 @@ interface GiftCard {
 }
 
 export default function CreateStorybook() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [characterPhotos, setCharacterPhotos] = useState<CharacterPhoto[]>([]);
   const [storyDescription, setStoryDescription] = useState('');
@@ -125,8 +127,23 @@ export default function CreateStorybook() {
     
     // Load saved form data if available
     const savedStep = getFormData('creation_currentStep');
-    if (typeof savedStep === 'number') {
-      setCurrentStep(savedStep);
+    
+    // Check URL for step parameter (supports both /create/4 and /create?step=4 formats)
+    const urlStep = router.query.step ? parseInt(router.query.step as string) : null;
+    
+    // Use URL step if valid, otherwise use saved step, otherwise default to 1
+    let initialStep = 1;
+    if (urlStep && urlStep >= 1 && urlStep <= steps.length) {
+      initialStep = urlStep;
+    } else if (typeof savedStep === 'number' && savedStep >= 1 && savedStep <= steps.length) {
+      initialStep = savedStep;
+    }
+    
+    setCurrentStep(initialStep);
+    
+    // Update URL if it doesn't match the determined step
+    if (!urlStep || urlStep !== initialStep) {
+      router.replace(`/create/${initialStep}`, undefined, { shallow: true });
     }
     
     const savedPhotos = getFormData('creation_characterPhotos');
@@ -236,14 +253,14 @@ export default function CreateStorybook() {
   // Cancel gift card reservations when order details change
   useEffect(() => {
     // Cancel reservations when additional copies change (if gift card is applied)
-    if (appliedGiftCard && typeof appliedGiftCard.code === 'string') {
+    if (appliedGiftCard && appliedGiftCard.code) {
       cancelGiftCardReservations(appliedGiftCard.code);
     }
   }, [additionalCopies, appliedGiftCard?.code as string]); // Only trigger when additionalCopies changes
   
   useEffect(() => {
     // Cancel reservations when gift card amount changes (if gift card is applied)
-    if (appliedGiftCard && typeof appliedGiftCard.code === 'string') {
+    if (appliedGiftCard && appliedGiftCard.code) {
       cancelGiftCardReservations(appliedGiftCard.code);
     }
   }, [giftCardAmount, appliedGiftCard?.code as string]); // Only trigger when giftCardAmount changes
@@ -499,6 +516,9 @@ export default function CreateStorybook() {
       saveFormData('creation_currentStep', nextStep);
       saveCurrentStep(nextStep);
       saveCreationFormData();
+      
+      // Update URL
+      router.push(`/create/${nextStep}`);
     }
     
     // Scroll to top when moving to next step
@@ -509,7 +529,7 @@ export default function CreateStorybook() {
   const handlePrevStep = async () => {
     if (currentStep > 1) {
       // If navigating back from step 4 (checkout) and gift card is applied, cancel reservations
-      if (currentStep === 4 && appliedGiftCard) {
+      if (currentStep === 4 && appliedGiftCard && appliedGiftCard.code) {
         await cancelGiftCardReservations(appliedGiftCard.code);
       }
       
@@ -520,6 +540,9 @@ export default function CreateStorybook() {
       saveFormData('creation_currentStep', prevStep);
       saveCurrentStep(prevStep);
       saveCreationFormData();
+      
+      // Update URL
+      router.push(`/create/${prevStep}`);
       
       // Scroll to top when moving to previous step
       window.scrollTo({ top: 0, behavior: 'smooth' });
