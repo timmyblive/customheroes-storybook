@@ -738,8 +738,17 @@ export async function confirmGiftCardReservation(
             ELSE 'active'
           END
       WHERE id = ${reservation.gift_card_id}
-      RETURNING remaining_amount
+      RETURNING remaining_amount, status
     `;
+    
+    const updatedGiftCard = updateResult[0];
+    console.log(`🎁 Gift card updated:`, {
+      giftCardId: reservation.gift_card_id,
+      previousBalance: 'unknown',
+      newBalance: updatedGiftCard.remaining_amount,
+      deductedAmount: reservation.reserved_amount / 100,
+      newStatus: updatedGiftCard.status
+    });
     
     // Mark reservation as confirmed
     await sql`
@@ -844,6 +853,35 @@ export async function cancelGiftCardReservation(sessionId: string): Promise<bool
     return cancelled;
   } catch (error) {
     console.error('Error cancelling gift card reservation:', error);
+    throw error;
+  }
+}
+
+// Fix gift card statuses (utility function for admin)
+export async function fixGiftCardStatuses(): Promise<number> {
+  try {
+    const sql = createSql();
+    
+    // Update all gift cards to have correct status based on remaining amount
+    const result = await sql`
+      UPDATE gift_cards 
+      SET status = CASE 
+        WHEN remaining_amount <= 0 THEN 'redeemed'
+        WHEN expires_at IS NOT NULL AND expires_at < CURRENT_TIMESTAMP THEN 'expired'
+        ELSE 'active'
+      END
+      WHERE status != CASE 
+        WHEN remaining_amount <= 0 THEN 'redeemed'
+        WHEN expires_at IS NOT NULL AND expires_at < CURRENT_TIMESTAMP THEN 'expired'
+        ELSE 'active'
+      END
+      RETURNING id, code, remaining_amount, status
+    `;
+    
+    console.log(`🔧 Fixed ${result.length} gift card statuses:`, result);
+    return result.length;
+  } catch (error) {
+    console.error('Error fixing gift card statuses:', error);
     throw error;
   }
 }
