@@ -10,6 +10,7 @@ import {
   getGiftCardByCode,
   getGiftCardAvailableBalance,
   createGiftCardReservation,
+  cancelOldGiftCardReservations,
   cleanupExpiredReservations
 } from '../../lib/database';
 
@@ -309,6 +310,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const giftCard = await getGiftCardByCode(validatedGiftCardCode);
         
         if (giftCard) {
+          // Cancel any old reservations for this gift card (handles users going back from Stripe checkout)
+          const cancelledCount = await cancelOldGiftCardReservations(giftCard.id, 5); // Cancel reservations older than 5 minutes
+          if (cancelledCount > 0) {
+            console.log(`🧹 Cancelled ${cancelledCount} old reservations for gift card ${validatedGiftCardCode} to allow reuse`);
+          }
+          
           // Create a reservation for the gift card redemption
           await createGiftCardReservation(giftCard.id, session.id, validatedGiftCardDiscount);
           console.log('✅ Gift card reservation created');

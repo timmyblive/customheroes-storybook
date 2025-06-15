@@ -857,6 +857,37 @@ export async function cancelGiftCardReservation(sessionId: string): Promise<bool
   }
 }
 
+// Cancel old gift card reservations for a specific gift card (for when user goes back from checkout)
+export async function cancelOldGiftCardReservations(
+  giftCardId: number, 
+  olderThanMinutes: number = 10
+): Promise<number> {
+  try {
+    const sql = createSql();
+    
+    const cutoffTime = new Date();
+    cutoffTime.setMinutes(cutoffTime.getMinutes() - olderThanMinutes);
+    
+    const result = await sql`
+      UPDATE gift_card_reservations 
+      SET status = 'cancelled'
+      WHERE gift_card_id = ${giftCardId} 
+        AND status = 'active'
+        AND created_at < ${cutoffTime}
+      RETURNING id, session_id, reserved_amount
+    `;
+    
+    if (result.length > 0) {
+      console.log(`🧹 Cancelled ${result.length} old reservations for gift card ${giftCardId}:`, result);
+    }
+    
+    return result.length;
+  } catch (error) {
+    console.error('Error cancelling old gift card reservations:', error);
+    throw error;
+  }
+}
+
 // Fix gift card statuses (utility function for admin)
 export async function fixGiftCardStatuses(): Promise<number> {
   try {
