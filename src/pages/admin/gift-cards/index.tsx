@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Layout from '../../../components/layout/Layout';
 import Button from '../../../components/ui/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGift, faSearch, faSync, faEdit, faEye, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faGift, faSearch, faSync, faEdit, faEye, faPlus, faWrench } from '@fortawesome/free-solid-svg-icons';
 import { formatCurrency } from '../../../utils/formatters';
 
 interface GiftCard {
@@ -71,6 +71,31 @@ export default function AdminGiftCards() {
     fetchGiftCards(currentPage, statusFilter, searchTerm);
   };
 
+  const handleFixStatuses = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/admin/fix-gift-card-statuses', {
+        method: 'POST',
+      });
+      
+      if (!response.ok) throw new Error('Failed to fix gift card statuses');
+      
+      const data = await response.json();
+      console.log(`Fixed ${data.fixedCount} gift card statuses`);
+      
+      // Refresh the gift cards list to show updated statuses
+      await fetchGiftCards(currentPage, statusFilter, searchTerm);
+      
+      // Show success message (you could add a toast notification here)
+      alert(`Successfully fixed ${data.fixedCount} gift card statuses!`);
+    } catch (error) {
+      console.error('Error fixing gift card statuses:', error);
+      alert('Failed to fix gift card statuses. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
@@ -100,7 +125,14 @@ export default function AdminGiftCards() {
               <FontAwesomeIcon icon={faSync} className="mr-2" />
               Refresh
             </Button>
-
+            <Button 
+              onClick={handleFixStatuses}
+              variant="secondary"
+              className="text-slate-600"
+            >
+              <FontAwesomeIcon icon={faWrench} className="mr-2" />
+              Fix Statuses
+            </Button>
             <Button 
               onClick={() => router.push('/admin/gift-cards/create')}
               variant="primary"
