@@ -295,8 +295,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         appliedGiftCardDiscount: formatMetadataValue(validatedGiftCardDiscount),
         appliedGiftCardCode: formatMetadataValue(validatedGiftCardCode),
       },
-      success_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create/confirmation?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_AI_SERVICE_URL}/create/4`,
+      success_url: `https://www.customheroes.ai/create/confirmation?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://www.customheroes.ai/create/4`,
     });
     console.log('Stripe session created:', session.id);
 
