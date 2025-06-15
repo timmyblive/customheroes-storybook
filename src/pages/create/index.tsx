@@ -122,6 +122,10 @@ export default function CreateStorybook() {
   
   // Generate a stable project number on component mount and load saved data
   useEffect(() => {
+    // Wait for router to be ready
+    if (!router.isReady) return;
+    
+    // Generate a random project number for this session
     setProjectNumber(String(Math.floor(Math.random() * 90000) + 10000));
     setIsClient(true); // Set client to true after mount
     
@@ -221,7 +225,7 @@ export default function CreateStorybook() {
     if (typeof savedGiftCardAmount === 'number') {
       setGiftCardAmount(savedGiftCardAmount);
     }
-  }, []);
+  }, [router.isReady]);
   
   // Set up event listeners for browser navigation
   useEffect(() => {
